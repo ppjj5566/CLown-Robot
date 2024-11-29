@@ -1,0 +1,6 @@
+include(servo2040_multiple_servos.cmake)
+include(servo2040_calibration.cmake)
+include(servo_pulse_calibration.cmake)
+# include(crown_robot_test.cmake)
+include(test_servo_value.cmake)
+include(test_console.cmake)
