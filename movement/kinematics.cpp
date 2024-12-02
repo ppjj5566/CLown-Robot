@@ -4,7 +4,6 @@
 #include "pico/stdlib.h"
 //TODO: make servos a pointer array
 
-
 volatile float servo_state[6][3] = { // coxa tibia femur
     {0.0f,0.0f,-5.0f},//1
     {0.0f,-5.0f,0.0f},//2
@@ -14,10 +13,8 @@ volatile float servo_state[6][3] = { // coxa tibia femur
     {0.0f,0.0f,0.0f},//5
     };
 
-Kinematics::Kinematics(Servo *servo1, Servo *servo2, Servo *servo3, int leg_number){
-    servos[0] = servo1;
-    servos[1] = servo2;
-    servos[2] = servo3;
+Kinematics::Kinematics(ServoCluster *servo_cluster, int leg_number){
+    servos = servo_cluster;
     leg_num = leg_number;
 }
 
@@ -34,8 +31,12 @@ void Kinematics::endpoint(float x, float y, float z){
         theta2 = (phi2 + phi3) * 180.0f / M_PI;
         theta3 = acos((pow(L2,2) + pow(L3,2) - pow(r3,2))/ (2 * L3 * L2)) * 180.0f / M_PI;
 
-        servos[0]->value(theta1 + servo_state[leg_num][0]);
-        servos[1]->value(theta2 + 90.0f + servo_state[leg_num][1]);
-        servos[2]->value(theta3 + servo_state[leg_num][2]);
+        servos->value(leg_num * 3, theta1 + servo_state[leg_num][0]);
+        servos->value(leg_num * 3 + 1, theta2 + 90.0f + servo_state[leg_num][1]);
+        servos->value(leg_num * 3 + 2, theta3 + servo_state[leg_num][2]);
+
+        // servos[0]->value(theta1 + servo_state[leg_num][0]);
+        // kinematics_servos[1]->value(theta2 + 90.0f + servo_state[leg_num][1]);
+        // kinematics_servos[2]->value(theta3 + servo_state[leg_num][2]);
     }
 }

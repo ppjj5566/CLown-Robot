@@ -7,24 +7,24 @@
 
 namespace servo {
   namespace servo2040 {
-    const uint SERVO_1 = 0;
-    const uint SERVO_2 = 1;
-    const uint SERVO_3 = 2;
-    const uint SERVO_4 = 3;
-    const uint SERVO_5 = 4;
-    const uint SERVO_6 = 5;
-    const uint SERVO_7 = 6;
-    const uint SERVO_8 = 7;
-    const uint SERVO_9 = 8;
-    const uint SERVO_10 = 9;
-    const uint SERVO_11 = 10;
-    const uint SERVO_12 = 11;
-    const uint SERVO_13 = 12;
-    const uint SERVO_14 = 13;
-    const uint SERVO_15 = 14;
-    const uint SERVO_16 = 15;
-    const uint SERVO_17 = 16;
-    const uint SERVO_18 = 17;
+    const uint SERVO_1 = 2;
+    const uint SERVO_2 = 3;
+    const uint SERVO_3 = 4;
+    const uint SERVO_4 = 5;
+    const uint SERVO_5 = 6;
+    const uint SERVO_6 = 7;
+    const uint SERVO_7 = 8;
+    const uint SERVO_8 = 9;
+    const uint SERVO_9 = 10;
+    const uint SERVO_10 = 11;
+    const uint SERVO_11 = 12;
+    const uint SERVO_12 = 13;
+    const uint SERVO_13 = 14;
+    const uint SERVO_14 = 15;
+    const uint SERVO_15 = 16;
+    const uint SERVO_16 = 17;
+    const uint SERVO_17 = 18;
+    const uint SERVO_18 = 19;
     const uint NUM_SERVOS = 18;
 
     const uint LED_DATA = 18;

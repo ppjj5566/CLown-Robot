@@ -29,7 +29,7 @@ namespace servo {
 
       // Apply the divider
       pwm_config_set_clkdiv(&pwm_cfg, (float)div16 / 16.0f); // There's no 'pwm_config_set_clkdiv_int_frac' for some reason...
-
+  
       pwm_init(pwm_gpio_to_slice_num(servo_pin), &pwm_cfg, true);
       gpio_set_function(servo_pin, GPIO_FUNC_PWM);
 
