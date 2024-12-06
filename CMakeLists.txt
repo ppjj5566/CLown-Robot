@@ -62,9 +62,10 @@ target_link_libraries(RoBoy-CrownRobot
         wifi_connection
         udp_server
         pico_stdlib
-        kinematics
         pico_multicore
         hardware_adc
+        inverse_kinematics
+        kinematics
         )
 
 # Add the standard include files to the build

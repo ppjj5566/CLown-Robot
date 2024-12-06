@@ -11,9 +11,6 @@
 
 #include "received_joystick_data.h"
 
-#define RCV_FROM_IP IP_ADDR_ANY
-#define MAX_ARRAY_SIZE 3
-
 class udp_server
 {
 private:
@@ -21,7 +18,7 @@ private:
     
 public:
     udp_server();
-    void start_udp_server(const int port, received_joystick_data recv_joy_data);    
+    void start_udp_server(const int port, received_joystick_data *recv_joy_data);    
     static void udp_receive_callback(void *arg, udp_pcb *pcb, pbuf *p, const ip_addr_t *addr, u16_t port);
     ~udp_server();
-};
+}; 

@@ -4,7 +4,7 @@
 #include "tusb.h"
 
 #include "wifi_connection.cpp"
-#include "kinematics.hpp"
+#include "inverse_kinematics.cpp"
 #include "udp_server.hpp"
 
 #include "servo2040.hpp"
@@ -23,9 +23,11 @@ ServoCluster *servo_cluster;
 
 wifi_connection wifi;
 udp_server server;
-static Kinematics *kinematics1, *kinematics2, *kinematics3, *kinematics4, *kinematics5, *kinematics6;
-received_joystick_data joy_data = {0, 0, 0, 0, 0, 0, 0, 0, 0};
+Kinematics *kinematics1, *kinematics2, *kinematics3, *kinematics4, *kinematics5, *kinematics6;
+inverse_kinematics *ik;
+received_joystick_data *joy_data;
 
+const float basic_leg_length = 65.0f;
 const float sin60 = 0.86602540378f;
 const float sin30 = 0.5f;
 const float cos30 = 0.86602540378f;                                                                                                                                                                                                                                                                                                                                           
@@ -62,49 +64,35 @@ void get_and_send_char_to_tinyusb(char *buffer, const char *message){
     send_char_to_tinyusb(message);
 }
 
-// bool repeat_voltage_measurement(struct repeating_timer *t){
-//     adc_init();
-//     adc_gpio_init(26);
-//     adc_select_input(0);
-//     uint16_t result = adc_read() * v_sersor_value;
-//     const float conversion_factor = 3.3f / (1 << 12);
-//     char buffer[30];
-//     sprintf(buffer, "Voltage: %f\n", conversion_factor * result);
-//     send_char_to_tinyusb(buffer);
-//     return true;
-// }
-
 void core1_entry(){
     while (true)
     {
-        volatile float x, y, z;
+        int x, y, z, roll, pitch, yaw;
+        multicore_fifo_pop_blocking();
+        x = joy_data->x1;
+        y = joy_data->y1;
+        z = -20.0f + joy_data->z1;
+        roll = joy_data->roll;
+        pitch = joy_data->pitch;
+        yaw = joy_data->yaw;
 
-        received_joystick_data *recv_joy_data = (received_joystick_data *)multicore_fifo_pop_blocking();
-        
-        x = recv_joy_data->x1;
-        y = recv_joy_data->y1;
-        z = -20.0f + recv_joy_data->z1;
-
-        kinematics1->endpoint((cos60 * x) + (sin60 * y), (50.0f + (cos60 * y)) - (sin60 * x), z);
-        kinematics2->endpoint(x, 50.0f + y, z);
-        kinematics3->endpoint((cos60 * x) - (sin60 * y), (50.0f + (cos60 * y)) + (sin60 * x), z);
-        kinematics4->endpoint((cos60 * -x) - (sin60 * y), (50.0f - (cos60 * y)) + (sin60 * x), z);
-        kinematics5->endpoint(-x, 50.0f - y, z);
-        kinematics6->endpoint((cos60 * -x) + (sin60 * y), (50.0f - (cos60 * y)) - (sin60 * x), z);
-
+        ik->body_inverse_kinematics(x, y, z, roll, pitch, yaw);
+        // kinematics1->endpoint((cos60 * x) + (sin60 * y), (basic_leg_length + (cos60 * y)) - (sin60 * x), z);
+        // kinematics2->endpoint(x, basic_leg_length + y, z);
+        // kinematics3->endpoint((cos60 * x) - (sin60 * y), (basic_leg_length + (cos60 * y)) + (sin60 * x), z);
+        // kinematics4->endpoint((cos60 * -x) - (sin60 * y), (basic_leg_length - (cos60 * y)) + (sin60 * x), z);
+        // kinematics5->endpoint(-x, basic_leg_length - y, z);
+        // kinematics6->endpoint((cos60 * -x) + (sin60 * y), (basic_leg_length - (cos60 * y)) - (sin60 * x), z);
         multicore_fifo_drain();
     }
 }
 
 int main(){
-    // alarm_pool_t *alarm_pool;
-    // repeating_timer_t *t;
 
     stdio_init_all();
     tusb_init();
     multicore_reset_core1();
     multicore_launch_core1(core1_entry);
-    // alarm_pool_add_repeating_timer_ms(alarm_pool, 200, repeat_voltage_measurement, NULL, t); // stoping hole program
 
     sleep_ms(3000);
     send_and_get_char_from_tinyusb("Enter SSID: ", ssid);
@@ -113,6 +101,8 @@ int main(){
     servo_cluster = new ServoCluster(pio0, 0, START_PIN, NUM_SERVOS);
     servo_cluster->init();
     servo_cluster->enable_all();
+
+    joy_data = new received_joystick_data();
 
     for (size_t i = 0; i < NUM_SERVOS; i++)
     {
@@ -125,6 +115,7 @@ int main(){
     kinematics4 = new Kinematics(servo_cluster, 3);
     kinematics5 = new Kinematics(servo_cluster, 4);
     kinematics6 = new Kinematics(servo_cluster, 5);
+    ik = new inverse_kinematics(kinematics1, kinematics2, kinematics3, kinematics4, kinematics5, kinematics6);
 
     wifi.connect_wifi(ssid, pw);
     server.start_udp_server(12345, joy_data);
