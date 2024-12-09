@@ -9,6 +9,7 @@ using namespace servo;
 const uint START_PIN = 2;
 const uint END_PIN = 19;
 const uint NUM_SERVOS = (END_PIN - START_PIN) + 1;
+ServoCluster *servo_cluster;
 Servo *servos[NUM_SERVOS];
 Calibration *calibration[NUM_SERVOS];
 
@@ -63,7 +64,6 @@ void ro_boy(){
     "                                        _/_/       \n"
     );
 }
-
 
 void crown_robot_servo_angle_status(){
     tud_cdc_read_flush();
@@ -185,10 +185,10 @@ void set_leg_calibration(uint leg_number, int servo_number, char *buffer, uint32
 }
 
 
-bool repeat_servo_angle(struct repeating_timer *t){
-    for(auto s = 0u; s < NUM_SERVOS - 1; s++) {
-        servos[s]->enable();
-        servos[s]->value(90.0f + servo_state[s / 3][s % 3]);
+bool repeat_servo_angle(){
+    servo_cluster->enable_all();
+    for(auto s = 0u; s < NUM_SERVOS; s++) {
+        servo_cluster->value(s, 90.0f + servo_state[s / 3][s % 3]);
     }
     return true;
 }
@@ -197,13 +197,10 @@ int main() {
     stdio_init_all();
     tusb_init();
     menu_page();
-    struct repeating_timer timer;
-
+    servo_cluster = new ServoCluster(pio0, 0, START_PIN, NUM_SERVOS);
+    servo_cluster->init();
     for(auto s = 0u; s < NUM_SERVOS; s++) {
-        servos[s] = new Servo(s + START_PIN);
-        calibration[s] = &servos[s]->calibration();
-        calibration[s]->apply_three_pairs(460.0f, 1430.0f, 2400.0f, 0.0f, 90.0f, 180.0f);
-        servos[s]->init();
+        servo_cluster->calibration(s).apply_three_pairs(460.0f, 1430.0f, 2400.0f, 0.0f, 90.0f, 180.0f);
     }
 
     while (true) {
@@ -220,14 +217,14 @@ int main() {
             switch (c){
                 case 'h':
                     ro_boy();
-                    cancel_repeating_timer(&timer);
+                    servo_cluster->disable_all();
                     for (auto s = 0u; s < NUM_SERVOS - 1; s++){
                         servos[s]->disable();
                     }
                     break;
                 case 'c':
                     crown_robot_servo_angle_status();
-                    add_repeating_timer_ms(200, repeat_servo_angle, NULL, &timer);
+                    repeat_servo_angle();
                     while (!tud_cdc_available()){
                         tud_task();
                     }
@@ -238,26 +235,32 @@ int main() {
                         case '1':
                             repeat_calib_menu = true;
                             set_leg_calibration(0, servo_number, buffer, count, servo_state, repeat_calib_menu);
+                            repeat_servo_angle();
                             break;
                         case '2':
                             repeat_calib_menu = true;
                             set_leg_calibration(1, servo_number, buffer, count, servo_state, repeat_calib_menu);
+                            repeat_servo_angle();
                             break;
                         case '3':
                             repeat_calib_menu = true;
                             set_leg_calibration(2, servo_number, buffer, count, servo_state, repeat_calib_menu);
+                            repeat_servo_angle();
                             break;
                         case '4':
                             repeat_calib_menu = true;
                             set_leg_calibration(3, servo_number, buffer, count, servo_state, repeat_calib_menu);
+                            repeat_servo_angle();
                             break;
                         case '5':
                             repeat_calib_menu = true;
                             set_leg_calibration(4, servo_number, buffer, count, servo_state, repeat_calib_menu);
+                            repeat_servo_angle();
                             break;
                         case '6':
                             repeat_calib_menu = true;
                             set_leg_calibration(5, servo_number, buffer, count, servo_state, repeat_calib_menu);
+                            repeat_servo_angle();
                             break;
                         default:
                             repeat_calib_menu = false;
