@@ -19,6 +19,7 @@ private:
 public:
     udp_server();
     void start_udp_server(const int port, received_joystick_data *recv_joy_data);    
+    void send_data(const ip_addr_t *addr, const int port, const char *data, const int len);
     static void udp_receive_callback(void *arg, udp_pcb *pcb, pbuf *p, const ip_addr_t *addr, u16_t port);
     ~udp_server();
 }; 

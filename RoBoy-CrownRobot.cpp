@@ -6,8 +6,9 @@
 #include "hardware/timer.h"
 
 #include "wifi_connection.cpp"
-#include "inverse_kinematics.cpp"
+//#include "inverse_kinematics.cpp"
 #include "udp_server.hpp"
+#include "gaits.cpp"
 
 #include "servo2040.hpp"
 
@@ -15,15 +16,12 @@ using namespace servo;
 
 char ssid[64], pw[64];
 const int port = 12345;
-float v_sersor_value = 0.194579f;
 
 const uint START_PIN = servo2040::SERVO_1;
 const uint END_PIN = servo2040::SERVO_18;
 const uint NUM_SERVOS = (END_PIN - START_PIN) + 1;
 
-repeating_timer timer1;
-repeating_timer timer2;
-repeating_timer timer3;
+repeating_timer timer;
 
 Calibration *calibration[NUM_SERVOS];
 ServoCluster *servo_cluster;
@@ -31,13 +29,10 @@ wifi_connection wifi;
 udp_server server;
 Kinematics *kinematics1, *kinematics2, *kinematics3, *kinematics4, *kinematics5, *kinematics6;
 inverse_kinematics *ik;
+gaits *gait;
 received_joystick_data *joy_data;
 
-const float basic_leg_length = 65.0f;
-const float sin60 = 0.86602540378f;
-const float sin30 = 0.5f;
-const float cos30 = 0.86602540378f;                                                                                                                                                                                                                                                                                                                                           
-const float cos60 = 0.5f;
+volatile int x, y, z, roll, pitch, yaw;
 
 void get_char_from_tinyusb(char *buffer){
     size_t index = sizeof(buffer);
@@ -84,55 +79,71 @@ void setup_amp_sensor(){
 
 void setup_temp_sensor(){
     adc_init();
-    adc_gpio_init(28);
+    adc_gpio_init(29);
     adc_select_input(2);
 }
 
-bool ampear_adc_callback(repeating_timer_t *rt){
+bool adc_callback(repeating_timer_t *rt){
+    const float conversion_factor = 3.3f / (1 << 12);
     adc_select_input(0);
     uint16_t result = adc_read();
-    const float conversion_factor = 3.3f / (1 << 12);
-    printf("Ampear: %fA\n",  (((float)result * conversion_factor) - 1.65f) / 0.09f);
-    return true;
-}
-
-bool voltage_adc_callback(repeating_timer_t *rt){
     adc_select_input(1);
-    uint16_t result = adc_read();
-    const float conversion_factor = 3.3f / (1 << 12);
-    printf("Voltage: %fV\n", (float)result * conversion_factor * 8.5f);
+    uint16_t result1 = adc_read();
+    adc_select_input(2);
+    uint16_t result2 = adc_read();
+    printf("Consumption: %.2fA, Batt: %.2fV, MCU Temperature: %.1f°C\n",  
+            (((float)result * conversion_factor) - 1.65f) / 0.09f, 
+            (float)result1 * conversion_factor * 8.5f,  
+            27 - ((((float)result2 * conversion_factor) - 0.706)/0.001721));
     return true;
 }
 
-bool temperature_adc_callback(repeating_timer_t *rt){
-    adc_select_input(2);    
-    uint16_t result = adc_read();
-    const float conversion_factor = 3.3f / (1 << 12);
-    printf("Temperature: %f°C\n", 27 - (((float)result * conversion_factor) - 0.706)/0.001721);
-    return true;
+int lerping(int start, int end, float t){
+    return start + (end - start) * t;
 }
 
 
 
-void core1_entry(){
+// bool voltage_adc_callback(repeating_timer_t *rt){
+//     adc_select_input(1);
+//     uint16_t result = adc_read();
+//     const float conversion_factor = 3.3f / (1 << 12);
+//     printf("Voltage: %fV\n", (float)result * conversion_factor * 8.5f);
+//     return true;
+// }
+
+// bool temperature_adc_callback(repeating_timer_t *rt){
+//     adc_select_input(2);
+//     uint16_t result = adc_read();
+//     const float conversion_factor = 3.3f / (1 << 12);
+//     printf("Temperature: %f°C\n", 27 - (((float)result * conversion_factor) - 0.706)/0.001721);
+//     return true;
+// }
+
+
+
+void core1_entry(){ //calculate inverse kinematics on core1
     while (true)
     {
-        int x, y, z, roll, pitch, yaw;
         multicore_fifo_pop_blocking();
+        // for(float i = 0.0f; i < 1.0f; i += 0.1f){
+        //     x = lerping(x, joy_data->x1, i);
+        //     y = lerping(y, joy_data->y1, i);
+        //     z = lerping(z, -20.0f + joy_data->z1, i);
+        //     roll = lerping(roll, joy_data->roll, i);
+        //     pitch = lerping(pitch, joy_data->pitch, i);
+        //     yaw = lerping(yaw, joy_data->yaw, i);
+        //     ik->body_inverse_kinematics(x, y, z, roll, pitch, yaw);
+        //     sleep_ms(15);
+        // }
         x = joy_data->x1;
         y = joy_data->y1;
         z = -20.0f + joy_data->z1;
         roll = joy_data->roll;
         pitch = joy_data->pitch;
         yaw = joy_data->yaw;
-
-        ik->body_inverse_kinematics(x, y, z, roll, pitch, yaw);
-        // kinematics1->endpoint((cos60 * x) + (sin60 * y), (basic_leg_length + (cos60 * y)) - (sin60 * x), z);
-        // kinematics2->endpoint(x, basic_leg_length + y, z);
-        // kinematics3->endpoint((cos60 * x) - (sin60 * y), (basic_leg_length + (cos60 * y)) + (sin60 * x), z);
-        // kinematics4->endpoint((cos60 * -x) - (sin60 * y), (basic_leg_length - (cos60 * y)) + (sin60 * x), z);
-        // kinematics5->endpoint(-x, basic_leg_length - y, z);
-        // kinematics6->endpoint((cos60 * -x) + (sin60 * y), (basic_leg_length - (cos60 * y)) - (sin60 * x), z);
+        gait->move(0, x, y, z);
+        //ik->leg_inverse_kinematics(0, x, y, z, roll, pitch, yaw);
         multicore_fifo_drain();
     }
 }
@@ -151,9 +162,7 @@ int main(){
     send_and_get_char_from_tinyusb("Enter SSID: ", ssid);
     send_and_get_char_from_tinyusb("Enter Password: ", pw);
 
-    add_repeating_timer_ms(100, voltage_adc_callback, NULL, &timer1);
-    add_repeating_timer_ms(100, ampear_adc_callback, NULL, &timer2);
-    add_repeating_timer_ms(100, temperature_adc_callback, NULL, &timer3);
+    add_repeating_timer_ms(100, adc_callback, NULL, &timer);
     
     servo_cluster = new ServoCluster(pio0, 0, START_PIN, NUM_SERVOS);
     servo_cluster->init();
@@ -161,8 +170,7 @@ int main(){
 
     joy_data = new received_joystick_data();
 
-    for (size_t i = 0; i < NUM_SERVOS; i++)
-    {
+    for (size_t i = 0; i < NUM_SERVOS; i++){
         servo_cluster->calibration(i).apply_three_pairs(460.0f, 1430.0f, 2400.0f, 0.0f, 90.0f, 180.0f);
     }
 
@@ -173,6 +181,7 @@ int main(){
     kinematics5 = new Kinematics(servo_cluster, 4);
     kinematics6 = new Kinematics(servo_cluster, 5);
     ik = new inverse_kinematics(kinematics1, kinematics2, kinematics3, kinematics4, kinematics5, kinematics6);
+    gait = new gaits(ik);
 
     wifi.connect_wifi(ssid, pw);
     server.start_udp_server(12345, joy_data);

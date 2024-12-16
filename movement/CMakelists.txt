@@ -1,6 +1,6 @@
 include(kinematics.cmake)
 include(inverse_kinematics.cmake)
-
+include(gaits.cmake)
 
 
 

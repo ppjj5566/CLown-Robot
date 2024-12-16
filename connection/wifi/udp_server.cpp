@@ -17,10 +17,12 @@ udp_server::udp_server() {
 
 void udp_server::start_udp_server(const int port, received_joystick_data *recv_joy_data){
     err_t bind = udp_bind(pcb, RCV_FROM_IP, port);
+
     if(bind != ERR_OK){
         printf("UDP bind failed\n");
         return;
     }
+
     printf("udp server started!\n");
     udp_recv(pcb, udp_receive_callback, recv_joy_data);
 
@@ -42,9 +44,9 @@ void udp_server::udp_receive_callback(void *arg, udp_pcb *pcb, pbuf *p, const ip
         recv_joy_data->roll = received_data[3];
         recv_joy_data->pitch = received_data[4];
         recv_joy_data->yaw = received_data[5];
-        printf("Received data: x = %i, y = %i, z = %i, roll = %i, pitch =%i, yaw = %i\n", 
-                            recv_joy_data->x1, recv_joy_data->y1, recv_joy_data->z1, 
-                            recv_joy_data->roll, recv_joy_data->pitch, recv_joy_data->yaw);
+        //printf("Received data: x = %i, y = %i, z = %i, roll = %i, pitch =%i, yaw = %i\n", 
+                            // recv_joy_data->x1, recv_joy_data->y1, recv_joy_data->z1, 
+                            // recv_joy_data->roll, recv_joy_data->pitch, recv_joy_data->yaw);
         multicore_fifo_push_blocking((uint32_t)&recv_joy_data);
     }
     else {
@@ -53,8 +55,16 @@ void udp_server::udp_receive_callback(void *arg, udp_pcb *pcb, pbuf *p, const ip
     pbuf_free(p);
 }
 
-udp_server::~udp_server()
-{   
+void udp_server::send_data(const ip_addr_t *addr, const int port, const char *data, const int len){
+    pbuf *p = pbuf_alloc(PBUF_TRANSPORT, len, PBUF_RAM);
+    if(p != nullptr){
+        memcpy(p->payload, data, len);
+        udp_sendto(pcb, p, addr, port);
+        pbuf_free(p);
+    }
+}
+
+udp_server::~udp_server(){   
     udp_remove(pcb);
     printf("udp connection disabled!\n");
 }
