@@ -3,24 +3,37 @@
 #include "pico/stdlib.h"
 #include "servo2040.hpp"
 #include "tusb.h"
+#include "hardware/flash.h"
+#define FLASH_TARGET_OFFSET (256 * 1024)
 
 using namespace servo;
 
 const uint START_PIN = 2;
 const uint END_PIN = 19;
 const uint NUM_SERVOS = (END_PIN - START_PIN) + 1;
+
+const uint8_t *flash_target_contents = (const uint8_t *)(XIP_BASE + FLASH_TARGET_OFFSET);
+
 ServoCluster *servo_cluster;
 Servo *servos[NUM_SERVOS];
 Calibration *calibration[NUM_SERVOS];
 
-float servo_state[6][3] = { // coxa tibia femur
-    {0.0f,0.0f,0.0f},//1
-    {0.0f,0.0f,0.0f},//2
-    {0.0f,0.0f,0.0f},//3
-    {0.0f,0.0f,0.0f},//4
-    {0.0f,0.0f,0.0f},//5
-    {0.0f,0.0f,0.0f},//6
+uint8_t random_data[FLASH_PAGE_SIZE];
+
+
+int servo_state[6][3] = { // coxa tibia femur
+    {0, 0, 0},//1
+    {0, 0, 0},//2
+    {0, 0, 0},//3
+    {0, 0, 0},//4
+    {0, 0, 0},//5
+    {0, 0, 0},//6
     };
+
+void flash_data_in_memory(){
+    printf("Erasing target region...\n");
+    flash_range_erase(FLASH_TARGET_OFFSET, FLASH_PAGE_SIZE);
+}
 
 void send_char_to_tinyusb(const char *message){
     while (*message){
@@ -87,12 +100,12 @@ void crown_robot_servo_angle_status(){
         "                             %u ▄          ▄ %u             \n"
         "                               /            \\              \n"
         "                          %u ▄/              \\▄ %u         \n",
-        90 + (int)servo_state[0][2], 90 + (int)servo_state[5][2], 90 + (int)servo_state[0][1],
-        90 + (int)servo_state[5][1], 90 + (int)servo_state[0][0], 90 + (int)servo_state[5][0],
-        90 + (int)servo_state[1][2], 90 + (int)servo_state[1][1], 90 + (int)servo_state[1][0],
-        90 + (int)servo_state[4][0], 90 + (int)servo_state[4][1], 90 + (int)servo_state[4][2],
-        90 + (int)servo_state[2][0], 90 + (int)servo_state[3][0], 90 + (int)servo_state[2][1],
-        90 + (int)servo_state[3][1], 90 + (int)servo_state[2][2], 90 + (int)servo_state[3][2]
+        90 + servo_state[0][2], 90 + servo_state[5][2], 90 + servo_state[0][1],
+        90 + servo_state[5][1], 90 + servo_state[0][0], 90 + servo_state[5][0],
+        90 + servo_state[1][2], 90 + servo_state[1][1], 90 + servo_state[1][0],
+        90 + servo_state[4][0], 90 + servo_state[4][1], 90 + servo_state[4][2],
+        90 + servo_state[2][0], 90 + servo_state[3][0], 90 + servo_state[2][1],
+        90 + servo_state[3][1], 90 + servo_state[2][2], 90 + servo_state[3][2]
         );
     send_char_to_tinyusb(buffer);
     send_char_to_tinyusb("Enter leg number (1-6): \n");
@@ -113,19 +126,19 @@ void leg_calibration_status(uint leg_number){
         "                       \\ \n"
         "                        \\\n",
         leg_number + 1,
-        90 + (int)servo_state[leg_number][2],
-        90 + (int)servo_state[leg_number][0],
-        90 + (int)servo_state[leg_number][1]
+        90 + servo_state[leg_number][2],
+        90 + servo_state[leg_number][0],
+        90 + servo_state[leg_number][1]
         );
     send_char_to_tinyusb(buffer);
     send_char_to_tinyusb("Coxa: ");
-    snprintf(buffer, sizeof(buffer), "%d", 90 + (int)servo_state[leg_number][0]);
+    snprintf(buffer, sizeof(buffer), "%d", 90 + servo_state[leg_number][0]);
     send_char_to_tinyusb(buffer);
     send_char_to_tinyusb("\nTibia: ");
-    snprintf(buffer, sizeof(buffer), "%d", 90 + (int)servo_state[leg_number][1]);
+    snprintf(buffer, sizeof(buffer), "%d", 90 + servo_state[leg_number][1]);
     send_char_to_tinyusb(buffer);
     send_char_to_tinyusb("\nFemur: ");
-    snprintf(buffer, sizeof(buffer), "%d", 90 + (int)servo_state[leg_number][2]);
+    snprintf(buffer, sizeof(buffer), "%d", 90 + servo_state[leg_number][2]);
     send_char_to_tinyusb(buffer);
     send_char_to_tinyusb("\nEnter the number of the servo you want to calibrate (1: Coxa, 2: Tibia, 3: femur): \n");
 }
@@ -138,7 +151,7 @@ int read_integer_from_usb() {
 }
 
 
-void calibrate_servo(char *buffer, uint32_t count, float servo_state[6][3], int leg_number, int servo_number, bool &repeat){
+void calibrate_servo(char *buffer, uint32_t count, int servo_state[6][3], int leg_number, int servo_number, bool &repeat){
     send_char_to_tinyusb("Enter the value of the servo: \n");
     tud_cdc_read_flush();
     while (!tud_cdc_available()){
@@ -151,13 +164,13 @@ void calibrate_servo(char *buffer, uint32_t count, float servo_state[6][3], int 
         bool repeat = false;
         return;
     }
-    servo_state[leg_number][servo_number] += (float)atoi(buffer);
-    sprintf(buffer, "%d", 90 + (int)servo_state[leg_number][servo_number]);
+    servo_state[leg_number][servo_number] += atoi(buffer);
+    sprintf(buffer, "%d", 90 + servo_state[leg_number][servo_number]);
     send_char_to_tinyusb(buffer);
     repeat = true;
 }
 
-void set_leg_calibration(uint leg_number, int servo_number, char *buffer, uint32_t count, float servo_state[6][3], bool &repeat){
+void set_leg_calibration(uint leg_number, int servo_number, char *buffer, uint32_t count, int servo_state[6][3], bool &repeat){
     tud_cdc_read_flush();
     leg_calibration_status(leg_number);
     while (!tud_cdc_available()){
@@ -188,7 +201,7 @@ void set_leg_calibration(uint leg_number, int servo_number, char *buffer, uint32
 bool repeat_servo_angle(){
     servo_cluster->enable_all();
     for(auto s = 0u; s < NUM_SERVOS; s++) {
-        servo_cluster->value(s, 90.0f + servo_state[s / 3][s % 3]);
+        servo_cluster->value(s, 90.0f + (float)servo_state[s / 3][s % 3]);
     }
     return true;
 }

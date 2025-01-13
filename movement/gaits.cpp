@@ -31,7 +31,9 @@ gaits::gaits(inverse_kinematics *ik){
 }
 
 int gaits::lerp(int start, int end, int t){
-    return start + (end - start) * (t/10);
+    float ft = t/30.0f;
+    float endpoint = start + ((end - start) * ft);
+    return (int) endpoint;
 }
 
 int gaits::bazier_curve(int start, int end, int height, int t){
@@ -45,7 +47,7 @@ void gaits::move(int gait, int x, int y, int z){
     switch (gait){
     case 0:
         if(sequence){
-            for (int t = 0; t <= 10; t++){
+            for (int t = 0; t <= 30; t++){
                 int position_x = lerp(last_position.x, x, t);
                 int position_y = lerp(last_position.y, y, t);
                 int position_z = bazier_curve(last_position.z, z, last_position.z + 30, t);
@@ -55,25 +57,25 @@ void gaits::move(int gait, int x, int y, int z){
                 ik->leg_inverse_kinematics(3, position_x, position_y, z, 0, 0, 0);
                 ik->leg_inverse_kinematics(4, -position_x, -position_y, position_z, 0, 0, 0);
                 ik->leg_inverse_kinematics(5, position_x, position_y, z, 0, 0, 0);
-                sleep_ms(200);
+                sleep_ms(5);
                 }
             last_position.set(x, y, z);
             this->sequence = false;
         }
         else{
-            for (int t = 0; t <= 10; t++){
-                int position_x = lerp(last_position.x, x, t);
-                int position_y = lerp(last_position.y, y, t);
-                int position_z = bazier_curve(last_position.z, z, last_position.z + 30, t);
+            for (int t = 0; t <= 30; t++){
+                int position_x = lerp(-last_position.x, x, t);
+                int position_y = lerp(-last_position.y, y, t);
+                int position_z = bazier_curve(last_position.z, z, last_position.z + 50, t);
                 ik->leg_inverse_kinematics(0, position_x, position_y, z, 0, 0, 0);
                 ik->leg_inverse_kinematics(1, -position_x, -position_y, position_z, 0, 0, 0);
                 ik->leg_inverse_kinematics(2, position_x, position_y, z, 0, 0, 0);
                 ik->leg_inverse_kinematics(3, -position_x, -position_y, position_z, 0, 0, 0);
                 ik->leg_inverse_kinematics(4, position_x, position_y, z, 0, 0, 0);
                 ik->leg_inverse_kinematics(5, -position_x, -position_y, position_z, 0, 0, 0);
-                sleep_ms(200);
+                sleep_ms(5);
             }
-            last_position.set(x, y, z);
+            last_position.set(-x, -y, z);
             this->sequence = true;
         }
         break;

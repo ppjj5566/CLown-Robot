@@ -5,12 +5,12 @@
 //TODO: make servos a pointer array
 
 volatile float servo_state[6][3] = { // coxa tibia femur
-    {-5.0f,0.0f,-10.0f},//1
-    {0.0f,-5.0f,-2.0f},//2
-    {-4.0f,8.0f,-10.0f},//3
-    {3.0f,0.0f,10.0f},//4
-    {0.0f,0.0f,0.0f},//6
-    {-5.0f,-5.0f,0.0f},//5
+    {5.0f,-15.0f,0.0f},//1
+    {0.0f,5.0f,0.0f},//2
+    {0.0f,10.0f,5.0f},//3
+    {0.0f,5.0f,-15.0f},//4
+    {0.0f,-5.0f,0.0f},//6
+    {0.0f,-15.0f,12.0f},//5
     };
 
 Kinematics::Kinematics(ServoCluster *servo_cluster, int leg_number){
