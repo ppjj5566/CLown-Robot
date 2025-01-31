@@ -54,9 +54,9 @@ void udp_server::udp_receive_callback(void *arg, udp_pcb *pcb, pbuf *p, const ip
         recv_joy_data->roll = received_data[3];
         recv_joy_data->pitch = received_data[4];
         recv_joy_data->yaw = received_data[5];
-        //printf("Received data: x = %i, y = %i, z = %i, roll = %i, pitch =%i, yaw = %i\n", 
-                            // recv_joy_data->x1, recv_joy_data->y1, recv_joy_data->z1, 
-                            // recv_joy_data->roll, recv_joy_data->pitch, recv_joy_data->yaw);
+        printf("Received data: x = %i, y = %i, z = %i, roll = %i, pitch =%i, yaw = %i\n", 
+                            recv_joy_data->x1, recv_joy_data->y1, recv_joy_data->z1, 
+                            recv_joy_data->roll, recv_joy_data->pitch, recv_joy_data->yaw);
         multicore_fifo_push_blocking((uint32_t)&recv_joy_data);
     }
     else {
