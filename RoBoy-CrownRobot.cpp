@@ -25,9 +25,9 @@ repeating_timer timer;
 Calibration *calibration[NUM_SERVOS];
 ServoCluster *servo_cluster;
 inverse_kinematics *i_k = new inverse_kinematics(servo_cluster);
-wifi_connection *wifi;
-udp_server *server;
-gaits *gait = new gaits(i_k);
+wifi_connection *wifi = new wifi_connection();
+udp_server *server = new udp_server();
+gaits *gait;
 received_joystick_data *joy_data = new received_joystick_data();
 
 int x, y, z, roll, pitch, yaw;
@@ -76,6 +76,7 @@ int main(){
     servo_cluster->enable_all();
 
     i_k = new inverse_kinematics(servo_cluster);
+    gait = new gaits(i_k);
 
     setup_amp_sensor();
     setup_voltage_sensor();
