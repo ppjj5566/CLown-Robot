@@ -29,7 +29,6 @@ void wifi_connection::connect_wifi(const char *wifi_ssid, const char *wifi_pw){
         printf("Already connected\n");
         return;
     }
-    
 }
 
 

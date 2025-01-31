@@ -64,9 +64,8 @@ target_link_libraries(RoBoy-CrownRobot
         pico_stdlib
         pico_multicore
         hardware_adc
-        inverse_kinematics
-        kinematics
-        )
+        gaits
+)
 
 # Add the standard include files to the build
 target_include_directories(RoBoy-CrownRobot PRIVATE

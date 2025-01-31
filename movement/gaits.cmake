@@ -1,14 +1,15 @@
-set(INTERFACE_NAME gaits)
+set(GAITS gaits)
 
-if(NOT TARGET ${INTERFACE_NAME})
-    add_library(${INTERFACE_NAME} INTERFACE)
+if(NOT TARGET ${GAITS})
+    add_library(${GAITS} INTERFACE)
 endif()
 
-target_sources(${INTERFACE_NAME} INTERFACE
+target_sources(${GAITS} INTERFACE
     ${CMAKE_CURRENT_LIST_DIR}/gaits.cpp
 )
 
-target_include_directories(${INTERFACE_NAME} INTERFACE ${CMAKE_CURRENT_LIST_DIR})
-target_link_libraries(${INTERFACE_NAME} INTERFACE
+target_include_directories(${GAITS} INTERFACE ${CMAKE_CURRENT_LIST_DIR})
+
+target_link_libraries(${GAITS} INTERFACE
     inverse_kinematics
 )

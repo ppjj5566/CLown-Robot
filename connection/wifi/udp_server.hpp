@@ -7,7 +7,6 @@
 #include "lwip/pbuf.h"
 #include "lwip/ip_addr.h"
 #include "lwip/udp.h"
-#include "kinematics.hpp"
 
 #include "received_joystick_data.h"
 
