@@ -21,11 +21,11 @@ void gaits::move(int gait, int x, int y, int z){
                 int position_x = lerp(last_position.x, x, t);
                 int position_y = lerp(last_position.y, y, t);
                 int position_z = bazier_curve(last_position.z, z, last_position.z + 30, t);
-                i_k->body_kinematics(position_x, position_y, last_position.z, 0, 0, 0, 0);
+                i_k->body_kinematics(-position_x, -position_y, last_position.z, 0, 0, 0, 0);
                 i_k->body_kinematics(position_x, position_y, position_z, 0, 0, 0, 1);
-                i_k->body_kinematics(position_x, position_y, last_position.z, 0, 0, 0, 2);
+                i_k->body_kinematics(-position_x, -position_y, last_position.z, 0, 0, 0, 2);
                 i_k->body_kinematics(position_x, position_y, position_z, 0, 0, 0, 3);
-                i_k->body_kinematics(position_x, position_y, last_position.z, 0, 0, 0, 4);
+                i_k->body_kinematics(-position_x, -position_y, last_position.z, 0, 0, 0, 4);
                 i_k->body_kinematics(position_x, position_y, position_z, 0, 0, 0, 5);
                 sleep_ms(5);
                 }
@@ -38,11 +38,11 @@ void gaits::move(int gait, int x, int y, int z){
                 int position_y = lerp(-last_position.y, y, t);
                 int position_z = bazier_curve(last_position.z, z, last_position.z + 50, t);
                 i_k->body_kinematics(position_x, position_y, position_z, 0, 0, 0, 0);
-                i_k->body_kinematics(position_x, position_y, last_position.z, 0, 0, 0, 1);
+                i_k->body_kinematics(-position_x, -position_y, last_position.z, 0, 0, 0, 1);
                 i_k->body_kinematics(position_x, position_y, position_z, 0, 0, 0, 2);
-                i_k->body_kinematics(position_x, position_y, last_position.z, 0, 0, 0, 3);
+                i_k->body_kinematics(-position_x, -position_y, last_position.z, 0, 0, 0, 3);
                 i_k->body_kinematics(position_x, position_y, position_z, 0, 0, 0, 4);
-                i_k->body_kinematics(position_x, position_y, last_position.z, 0, 0, 0, 5);
+                i_k->body_kinematics(-position_x, -position_y, last_position.z, 0, 0, 0, 5);
                 sleep_ms(5);
             }
             last_position.set(-x, -y, z);

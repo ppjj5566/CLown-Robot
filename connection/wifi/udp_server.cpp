@@ -57,7 +57,11 @@ void udp_server::udp_receive_callback(void *arg, udp_pcb *pcb, pbuf *p, const ip
         printf("Received data: x = %i, y = %i, z = %i, roll = %i, pitch =%i, yaw = %i\n", 
                             recv_joy_data->x1, recv_joy_data->y1, recv_joy_data->z1, 
                             recv_joy_data->roll, recv_joy_data->pitch, recv_joy_data->yaw);
-        multicore_fifo_push_blocking((uint32_t)&recv_joy_data);
+        if(multicore_fifo_rvalid){
+            multicore_fifo_push_blocking((uint32_t) recv_joy_data);
+        }else{
+            multicore_fifo_drain();
+        }
     }
     else {
         printf("Error: Received data exceeds buffer size.\n");

@@ -28,7 +28,7 @@ inverse_kinematics *i_k = new inverse_kinematics(servo_cluster);
 wifi_connection *wifi = new wifi_connection();
 udp_server *server = new udp_server();
 gaits *gait;
-received_joystick_data *joy_data = new received_joystick_data();
+received_joystick_data *joy_data;
 
 int x, y, z, roll, pitch, yaw;
 
@@ -59,7 +59,9 @@ void core1_entry(){ //calculate inverse kinematics on core1
         gait->move(0, x, y, z);
         auto recv_ip = server->get_recv_ip();
         server->send_data(&recv_ip, port, (char *)joy_data, sizeof(received_joystick_data));
-        multicore_fifo_drain();
+        if (multicore_fifo_rvalid()){
+            multicore_fifo_drain();
+        }
     }
 }
 
@@ -75,6 +77,7 @@ int main(){
     }
     servo_cluster->enable_all();
 
+    joy_data = new received_joystick_data();
     i_k = new inverse_kinematics(servo_cluster);
     gait = new gaits(i_k);
 
@@ -86,12 +89,14 @@ int main(){
     send_and_get_char_from_tinyusb("Enter SSID: ", ssid);
     send_and_get_char_from_tinyusb("Enter Password: ", pw);
 
-    add_repeating_timer_ms(100, adc_callback, NULL, &timer);
+    multicore_launch_core1(core1_entry);
+
+    //add_repeating_timer_ms(1000, adc_callback, NULL, &timer);
     
     wifi->connect_wifi(ssid, pw);
     server->start_udp_server(12345, joy_data);
 
-    multicore_launch_core1(core1_entry);
+    
 
     return 0;
 }
