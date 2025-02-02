@@ -42,7 +42,7 @@ bool adc_callback(repeating_timer_t *rt){
     uint16_t result2 = adc_read();
     printf("Consumption: %.2fA, Batt: %.2fV, MCU Temperature: %.1f°C\n",  
             (((float)result * conversion_factor) - 1.65f) / 0.09f,  
-            (float)result1 * conversion_factor * 8.5f,  
+            (float)result1 * conversion_factor * 8.5f,
             27 - ((((float)result2 * conversion_factor) - 0.706)/0.001721));
     return true;
 }
@@ -57,8 +57,8 @@ void core1_entry(){ //calculate inverse kinematics on core1
         pitch = joy_data->pitch;
         yaw = joy_data->yaw;
         gait->move(0, x, y, z);
-        auto recv_ip = server->get_recv_ip();
-        server->send_data(&recv_ip, port, (char *)joy_data, sizeof(received_joystick_data));
+        //auto recv_ip = server->get_recv_ip();
+        //server->send_data(&recv_ip, port, (char *)joy_data, sizeof(received_joystick_data));
         if (multicore_fifo_rvalid()){
             multicore_fifo_drain();
         }

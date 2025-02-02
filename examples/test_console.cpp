@@ -15,11 +15,7 @@ const uint NUM_SERVOS = (END_PIN - START_PIN) + 1;
 const uint8_t *flash_target_contents = (const uint8_t *)(XIP_BASE + FLASH_TARGET_OFFSET);
 
 ServoCluster *servo_cluster;
-Servo *servos[NUM_SERVOS];
 Calibration *calibration[NUM_SERVOS];
-
-uint8_t random_data[FLASH_PAGE_SIZE];
-
 
 int servo_state[6][3] = { // coxa tibia femur
     {0, 0, 0},//1
@@ -34,6 +30,7 @@ void flash_data_in_memory(){
     printf("Erasing target region...\n");
     flash_range_erase(FLASH_TARGET_OFFSET, FLASH_PAGE_SIZE);
 }
+
 
 void send_char_to_tinyusb(const char *message){
     while (*message){
@@ -198,12 +195,11 @@ void set_leg_calibration(uint leg_number, int servo_number, char *buffer, uint32
 }
 
 
-bool repeat_servo_angle(){
+void repeat_servo_angle(){
     servo_cluster->enable_all();
     for(auto s = 0u; s < NUM_SERVOS; s++) {
         servo_cluster->value(s, 90.0f + (float)servo_state[s / 3][s % 3]);
     }
-    return true;
 }
 
 int main() {
@@ -231,9 +227,6 @@ int main() {
                 case 'h':
                     ro_boy();
                     servo_cluster->disable_all();
-                    for (auto s = 0u; s < NUM_SERVOS - 1; s++){
-                        servos[s]->disable();
-                    }
                     break;
                 case 'c':
                     crown_robot_servo_angle_status();
@@ -242,8 +235,7 @@ int main() {
                         tud_task();
                     }
                     leg_number = tud_cdc_read_char();
-                    do
-                    {
+                    do{
                        switch (leg_number) {
                         case '1':
                             repeat_calib_menu = true;
