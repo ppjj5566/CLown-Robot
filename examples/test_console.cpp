@@ -13,11 +13,12 @@ const uint END_PIN = 19;
 const uint NUM_SERVOS = (END_PIN - START_PIN) + 1;
 
 const uint8_t *flash_target_contents = (const uint8_t *)(XIP_BASE + FLASH_TARGET_OFFSET);
+uint8_t data_array[FLASH_PAGE_SIZE];
 
 ServoCluster *servo_cluster;
 Calibration *calibration[NUM_SERVOS];
 
-int servo_state[6][3] = { // coxa tibia femur
+int servo_calibrated_value[6][3] = { // coxa tibia femur
     {0, 0, 0},//1
     {0, 0, 0},//2
     {0, 0, 0},//3
@@ -29,6 +30,21 @@ int servo_state[6][3] = { // coxa tibia femur
 void flash_data_in_memory(){
     printf("Erasing target region...\n");
     flash_range_erase(FLASH_TARGET_OFFSET, FLASH_PAGE_SIZE);
+}
+
+void flash_data_to_memory(){
+    printf("Writing data to target region...\n");
+    for (int i = 0; i < 18; i++){
+        data_array[i] = servo_calibrated_value[i / 3][i % 3];
+    }
+    flash_range_program(FLASH_TARGET_OFFSET, data_array, FLASH_PAGE_SIZE);
+}
+
+void read_data_from_flash(){
+    for (int i = 0; i < 18; i++){
+        printf("Data: %d\n", flash_target_contents[i]);
+        servo_calibrated_value[i / 3][i % 3] = (int) flash_target_contents[i];
+    }
 }
 
 
@@ -97,12 +113,12 @@ void crown_robot_servo_angle_status(){
         "                             %u ▄          ▄ %u             \n"
         "                               /            \\              \n"
         "                          %u ▄/              \\▄ %u         \n",
-        90 + servo_state[0][2], 90 + servo_state[5][2], 90 + servo_state[0][1],
-        90 + servo_state[5][1], 90 + servo_state[0][0], 90 + servo_state[5][0],
-        90 + servo_state[1][2], 90 + servo_state[1][1], 90 + servo_state[1][0],
-        90 + servo_state[4][0], 90 + servo_state[4][1], 90 + servo_state[4][2],
-        90 + servo_state[2][0], 90 + servo_state[3][0], 90 + servo_state[2][1],
-        90 + servo_state[3][1], 90 + servo_state[2][2], 90 + servo_state[3][2]
+        90 + servo_calibrated_value[0][2], 90 + servo_calibrated_value[5][2], 90 + servo_calibrated_value[0][1],
+        90 + servo_calibrated_value[5][1], 90 + servo_calibrated_value[0][0], 90 + servo_calibrated_value[5][0],
+        90 + servo_calibrated_value[1][2], 90 + servo_calibrated_value[1][1], 90 + servo_calibrated_value[1][0],
+        90 + servo_calibrated_value[4][0], 90 + servo_calibrated_value[4][1], 90 + servo_calibrated_value[4][2],
+        90 + servo_calibrated_value[2][0], 90 + servo_calibrated_value[3][0], 90 + servo_calibrated_value[2][1],
+        90 + servo_calibrated_value[3][1], 90 + servo_calibrated_value[2][2], 90 + servo_calibrated_value[3][2]
         );
     send_char_to_tinyusb(buffer);
     send_char_to_tinyusb("Enter leg number (1-6): \n");
@@ -123,19 +139,19 @@ void leg_calibration_status(uint leg_number){
         "                       \\ \n"
         "                        \\\n",
         leg_number + 1,
-        90 + servo_state[leg_number][2],
-        90 + servo_state[leg_number][0],
-        90 + servo_state[leg_number][1]
+        90 + servo_calibrated_value[leg_number][2],
+        90 + servo_calibrated_value[leg_number][0],
+        90 + servo_calibrated_value[leg_number][1]
         );
     send_char_to_tinyusb(buffer);
     send_char_to_tinyusb("Coxa: ");
-    snprintf(buffer, sizeof(buffer), "%d", 90 + servo_state[leg_number][0]);
+    snprintf(buffer, sizeof(buffer), "%d", 90 + servo_calibrated_value[leg_number][0]);
     send_char_to_tinyusb(buffer);
     send_char_to_tinyusb("\nTibia: ");
-    snprintf(buffer, sizeof(buffer), "%d", 90 + servo_state[leg_number][1]);
+    snprintf(buffer, sizeof(buffer), "%d", 90 + servo_calibrated_value[leg_number][1]);
     send_char_to_tinyusb(buffer);
     send_char_to_tinyusb("\nFemur: ");
-    snprintf(buffer, sizeof(buffer), "%d", 90 + servo_state[leg_number][2]);
+    snprintf(buffer, sizeof(buffer), "%d", 90 + servo_calibrated_value[leg_number][2]);
     send_char_to_tinyusb(buffer);
     send_char_to_tinyusb("\nEnter the number of the servo you want to calibrate (1: Coxa, 2: Tibia, 3: femur): \n");
 }
@@ -147,8 +163,7 @@ int read_integer_from_usb() {
     return atoi(buffer); // Convert string to integer
 }
 
-
-void calibrate_servo(char *buffer, uint32_t count, int servo_state[6][3], int leg_number, int servo_number, bool &repeat){
+void calibrate_servo(char *buffer, uint32_t count, int servo_calibrated_value[6][3], int leg_number, int servo_number, bool &repeat){
     send_char_to_tinyusb("Enter the value of the servo: \n");
     tud_cdc_read_flush();
     while (!tud_cdc_available()){
@@ -161,13 +176,13 @@ void calibrate_servo(char *buffer, uint32_t count, int servo_state[6][3], int le
         bool repeat = false;
         return;
     }
-    servo_state[leg_number][servo_number] += atoi(buffer);
-    sprintf(buffer, "%d", 90 + servo_state[leg_number][servo_number]);
+    servo_calibrated_value[leg_number][servo_number] += atoi(buffer);
+    sprintf(buffer, "%d", 90 + servo_calibrated_value[leg_number][servo_number]);
     send_char_to_tinyusb(buffer);
     repeat = true;
 }
 
-void set_leg_calibration(uint leg_number, int servo_number, char *buffer, uint32_t count, int servo_state[6][3], bool &repeat){
+void set_leg_calibration(uint leg_number, int servo_number, char *buffer, uint32_t count, int servo_calibrated_value[6][3], bool &repeat){
     tud_cdc_read_flush();
     leg_calibration_status(leg_number);
     while (!tud_cdc_available()){
@@ -176,15 +191,15 @@ void set_leg_calibration(uint leg_number, int servo_number, char *buffer, uint32
     servo_number = tud_cdc_read_char();
         switch (servo_number) {
         case '1':
-            calibrate_servo(buffer, count, servo_state, leg_number, 0, repeat);
+            calibrate_servo(buffer, count, servo_calibrated_value, leg_number, 0, repeat);
             repeat = true;
             break;
         case '2':
-            calibrate_servo(buffer, count, servo_state, leg_number, 1, repeat);
+            calibrate_servo(buffer, count, servo_calibrated_value, leg_number, 1, repeat);
             repeat = true;
             break;
         case '3':
-            calibrate_servo(buffer, count, servo_state, leg_number, 2, repeat);
+            calibrate_servo(buffer, count, servo_calibrated_value, leg_number, 2, repeat);
             repeat = true;
             break;
         default:
@@ -194,11 +209,10 @@ void set_leg_calibration(uint leg_number, int servo_number, char *buffer, uint32
         }
 }
 
-
 void repeat_servo_angle(){
     servo_cluster->enable_all();
     for(auto s = 0u; s < NUM_SERVOS; s++) {
-        servo_cluster->value(s, 90.0f + (float)servo_state[s / 3][s % 3]);
+        servo_cluster->value(s, 90.0f + (float)servo_calibrated_value[s / 3][s % 3]);
     }
 }
 
@@ -228,6 +242,15 @@ int main() {
                     ro_boy();
                     servo_cluster->disable_all();
                     break;
+                case 'r':
+                    flash_data_in_memory(); // erase the flash memory
+                    break;
+                case 'd':
+                    flash_data_to_memory(); // write the data to the flash memory
+                    break;
+                case 'l':
+                    read_data_from_flash(); // read the data from the flash memory
+                    break;
                 case 'c':
                     crown_robot_servo_angle_status();
                     repeat_servo_angle();
@@ -239,32 +262,32 @@ int main() {
                        switch (leg_number) {
                         case '1':
                             repeat_calib_menu = true;
-                            set_leg_calibration(0, servo_number, buffer, count, servo_state, repeat_calib_menu);
+                            set_leg_calibration(0, servo_number, buffer, count, servo_calibrated_value, repeat_calib_menu);
                             repeat_servo_angle();
                             break;
                         case '2':
                             repeat_calib_menu = true;
-                            set_leg_calibration(1, servo_number, buffer, count, servo_state, repeat_calib_menu);
+                            set_leg_calibration(1, servo_number, buffer, count, servo_calibrated_value, repeat_calib_menu);
                             repeat_servo_angle();
                             break;
                         case '3':
                             repeat_calib_menu = true;
-                            set_leg_calibration(2, servo_number, buffer, count, servo_state, repeat_calib_menu);
+                            set_leg_calibration(2, servo_number, buffer, count, servo_calibrated_value, repeat_calib_menu);
                             repeat_servo_angle();
                             break;
                         case '4':
                             repeat_calib_menu = true;
-                            set_leg_calibration(3, servo_number, buffer, count, servo_state, repeat_calib_menu);
+                            set_leg_calibration(3, servo_number, buffer, count, servo_calibrated_value, repeat_calib_menu);
                             repeat_servo_angle();
                             break;
                         case '5':
                             repeat_calib_menu = true;
-                            set_leg_calibration(4, servo_number, buffer, count, servo_state, repeat_calib_menu);
+                            set_leg_calibration(4, servo_number, buffer, count, servo_calibrated_value, repeat_calib_menu);
                             repeat_servo_angle();
                             break;
                         case '6':
                             repeat_calib_menu = true;
-                            set_leg_calibration(5, servo_number, buffer, count, servo_state, repeat_calib_menu);
+                            set_leg_calibration(5, servo_number, buffer, count, servo_calibrated_value, repeat_calib_menu);
                             repeat_servo_angle();
                             break;
                         default:
