@@ -1,37 +1,34 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include "pico/stdlib.h"
+#include "servo2040.hpp"
 #include "tusb.h"
 #include "hardware/flash.h"
-//#include "servo2040.hpp"
-#include "servo_cluster.hpp"
 
 #define FLASH_TARGET_OFFSET (256 * 1024)
 
-uint8_t data_array[FLASH_PAGE_SIZE];
+const uint8_t *flash_target_contents = (const uint8_t *)(XIP_BASE + FLASH_TARGET_OFFSET);
 
-int servo_calibrated_value[6][3] = { // coxa tibia femur
-    {0, 0, 0},                       //1
-    {0, 0, 0},                       //2
-    {0, 0, 0},                       //3
-    {0, 0, 0},                       //4
-    {0, 0, 0},                       //5
-    {0, 0, 0},                       //6
-    };
-
-void setup_voltage_sensor(){
-    adc_gpio_init(27);
-    adc_select_input(1);
-}   
-
-void setup_amp_sensor(){
-    adc_gpio_init(26);
-    adc_select_input(0);
+void flash_data_in_memory(){
+    printf("Erasing target region...\n");
+    flash_range_erase(FLASH_TARGET_OFFSET, FLASH_PAGE_SIZE);
 }
 
-void setup_temp_sensor(){
-    adc_set_temp_sensor_enabled(true);
-    adc_select_input(4);
+void flash_data_to_memory(){
+    printf("Writing data to target region...\n");
+    for (int i = 0; i < 18; i++){
+        data_array[i] = servo_calibrated_value[i / 3][i % 3];
+    }
+    flash_range_program(FLASH_TARGET_OFFSET, data_array, FLASH_PAGE_SIZE);
 }
+
+void read_data_from_flash(){
+    for (int i = 0; i < 18; i++){
+        printf("Data: %d\n", flash_target_contents[i]);
+        servo_calibrated_value[i / 3][i % 3] = (int) flash_target_contents[i];
+    }
+}
+
 
 void get_char_from_tinyusb(char *buffer){
     size_t index = sizeof(buffer);
@@ -67,20 +64,6 @@ void get_and_send_char_to_tinyusb(char *buffer, const char *message){
 void menu_page(){
     send_char_to_tinyusb("--select the menu--\n");
     send_char_to_tinyusb("c: print name of company\n");
-}
-
-
-void flash_data_in_memory(){
-    printf("Erasing target region...\n");
-    flash_range_erase(FLASH_TARGET_OFFSET, FLASH_PAGE_SIZE);
-}
-
-void flash_data_to_memory(){
-    printf("Writing data to target region...\n");
-    for (int i = 0; i < 18; i++){
-        data_array[i] = servo_calibrated_value[i / 3][i % 3];
-    }
-    flash_range_program(FLASH_TARGET_OFFSET, data_array, FLASH_PAGE_SIZE);
 }
 
 void crown_robot(){
@@ -231,9 +214,90 @@ void set_leg_calibration(uint leg_number, int servo_number, char *buffer, uint32
         }
 }
 
-// void repeat_servo_angle(){
-//     servo_cluster->enable_all();
-//     for(auto s = 0u; s < 18; s++) {
-//         servo_cluster->value(s, 90.0f + (float)servo_calibrated_value[s / 3][s % 3]);
-//     }
-// }
+void repeat_servo_angle(ServoCluster *servo_cluster){
+    servo_cluster->enable_all();
+    for(auto s = 0u; s < 18; s++) {
+        servo_cluster->value(s, 90.0f + (float)servo_calibrated_value[s / 3][s % 3]);
+    }
+}
+
+
+void main_console(ServoCluster *servo_cluster){
+    while (true) {
+        tight_loop_contents();
+        if (tud_cdc_connected()) {
+            if(tud_cdc_available()){
+                send_char_to_tinyusb("Enter command: \n");
+                char c = tud_cdc_read_char();
+                char leg_number;
+                int servo_number;
+                char buffer[16];
+                bool repeat_calib_menu;
+                uint32_t count;
+            switch (c){
+                case 'h':
+                    ro_boy();
+                    servo_cluster->disable_all();
+                    break;
+                case 'r':
+                    flash_data_in_memory(); // erase the flash memory
+                    break;
+                case 'd':
+                    flash_data_to_memory(); // write the data to the flash memory
+                    break;
+                case 'l':
+                    read_data_from_flash(); // read the data from the flash memory
+                    break;
+                case 'c':
+                    crown_robot_servo_angle_status();
+                    repeat_servo_angle(servo_cluster);
+                    while (!tud_cdc_available()){
+                        tud_task();
+                    }
+                    leg_number = tud_cdc_read_char();
+                    do{
+                       switch (leg_number) {
+                        case '1':
+                            repeat_calib_menu = true;
+                            set_leg_calibration(0, servo_number, buffer, count, servo_calibrated_value, repeat_calib_menu);
+                            repeat_servo_angle(servo_cluster);
+                            break;
+                        case '2':
+                            repeat_calib_menu = true;
+                            set_leg_calibration(1, servo_number, buffer, count, servo_calibrated_value, repeat_calib_menu);
+                            repeat_servo_angle(servo_cluster);
+                            break;
+                        case '3':
+                            repeat_calib_menu = true;
+                            set_leg_calibration(2, servo_number, buffer, count, servo_calibrated_value, repeat_calib_menu);
+                            repeat_servo_angle(servo_cluster);
+                            break;
+                        case '4':
+                            repeat_calib_menu = true;
+                            set_leg_calibration(3, servo_number, buffer, count, servo_calibrated_value, repeat_calib_menu);
+                            repeat_servo_angle(servo_cluster);
+                            break;
+                        case '5':
+                            repeat_calib_menu = true;
+                            set_leg_calibration(4, servo_number, buffer, count, servo_calibrated_value, repeat_calib_menu);
+                            repeat_servo_angle(servo_cluster);
+                            break;
+                        case '6':
+                            repeat_calib_menu = true;
+                            set_leg_calibration(5, servo_number, buffer, count, servo_calibrated_value, repeat_calib_menu);
+                            repeat_servo_angle(servo_cluster);
+                            break;
+                        default:
+                            repeat_calib_menu = false;
+                            send_char_to_tinyusb("Invalid leg number\n");
+                            break;
+                        }
+                    } while (repeat_calib_menu);
+                    break;
+                default:
+                    send_char_to_tinyusb("Invalid command\n");
+                    break;
+                }
+            }
+        }
+    }

@@ -41,7 +41,7 @@ add_subdirectory(common)
 add_subdirectory(libraries)
 add_subdirectory(drivers)
 add_subdirectory(movement)
-add_subdirectory(examples)
+#add_subdirectory(examples)
 add_subdirectory(connection)
 add_subdirectory(data_structure)
 

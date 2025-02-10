@@ -4,8 +4,8 @@
 #include "servo2040.hpp"
 #include "tusb.h"
 #include "hardware/flash.h"
-#define FLASH_TARGET_OFFSET (256 * 1024)
 
+#define FLASH_TARGET_OFFSET (256 * 1024)
 using namespace servo;
 
 const uint START_PIN = 2;
