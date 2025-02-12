@@ -1,8 +1,5 @@
 #include "pico/stdlib.h"
 #include "pico/cyw43_arch.h"
-
-#include "lwip/udp.h"
-#include "lwip/pbuf.h"
 #include "lwip/ip_addr.h"
 
 class wifi_connection{

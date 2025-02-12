@@ -52,7 +52,7 @@ void core1_entry(){ //calculate inverse kinematics on core1
         multicore_fifo_pop_blocking();
         x = joy_data->x1;
         y = joy_data->y1;
-        z = -20.0f + joy_data->z1;
+        z = joy_data->z1;
         roll = joy_data->roll;
         pitch = joy_data->pitch;
         yaw = joy_data->yaw;

@@ -4,6 +4,8 @@
 #include "pico/stdlib.h"
 #include "pico/cyw43_arch.h"
 
+#include "lwip/sockets.h"
+#include "lwip/inet.h"
 #include "lwip/pbuf.h"
 #include "lwip/ip_addr.h"
 #include "lwip/udp.h"

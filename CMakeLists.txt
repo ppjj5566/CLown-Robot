@@ -27,6 +27,7 @@ set(PICO_BOARD pico_w CACHE STRING "Board type")
 
 # Pull in Raspberry Pi Pico SDK (must be before project)
 include(pico_sdk_import.cmake)
+include(FreeRTOS_Kernel_import.cmake)
 
 project(RoBoy-CrownRobot C CXX ASM)
 
@@ -58,13 +59,14 @@ pico_enable_stdio_usb(RoBoy-CrownRobot 1)
 
 # Add the standard library to the build
 target_link_libraries(RoBoy-CrownRobot
-        pico_stdlib
-        wifi_connection
-        udp_server
-        pico_stdlib
-        pico_multicore
-        hardware_adc
-        gaits
+  pico_async_context_freertos
+  FreeRTOS-Kernel-Heap4
+  wifi_connection
+  pico_multicore
+  hardware_adc
+  pico_stdlib
+  udp_server
+  gaits
 )
 
 # Add the standard include files to the build
