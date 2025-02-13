@@ -1,4 +1,10 @@
 #include "inverse_kinematics.hpp"
+#include "FreeRTOS.h"
+#include "task.h"
+#include "semphr.h"
+#include "received_joystick_data.h"
+
+extern xSemaphoreHandle gaits_mutex;
 
 class gaits
 {
@@ -16,9 +22,11 @@ private:
     } last_position;
 
 public:
-    gaits(inverse_kinematics *ik): i_k(ik), sequence(true), gait(0), last_position({0, 0, 0}){};
+    gaits(inverse_kinematics *ik): i_k(ik), sequence(true), gait(0), last_position({0, 0, 0}){
+        gaits_mutex = xSemaphoreCreateBinary();
+    };
     int lerp(int start, int end, int t);
     int bazier_curve(int start, int end, int height, int t);
-    void move(int gaits, int x, int y, int z);
+    void move(received_joystick_data *joy_data);
     ~gaits() {};
 };

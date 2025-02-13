@@ -1,6 +1,10 @@
 #include "udp_server.hpp"
 #include "pico/multicore.h"
 #include "hardware/irq.h"
+#include "FreeRTOS.h"
+#include "semphr.h"
+#include "task.h"
+#include "gaits.h"
 
 #define RCV_FROM_IP              IP_ADDR_ANY
 #define MAX_ARRAY_SIZE           6
@@ -14,8 +18,8 @@ udp_server::udp_server() {
     }
 }
 
-void udp_server::start_udp_server(const int port, received_joystick_data *recv_joy_data){
-    err_t bind = udp_bind(pcb, RCV_FROM_IP, port);
+void udp_server::udp_server_task(received_joystick_data *recv_joy_data){
+    err_t bind = udp_bind(pcb, RCV_FROM_IP, 12345);
 
     if(bind != ERR_OK){
         printf("UDP bind failed\n");
@@ -24,9 +28,11 @@ void udp_server::start_udp_server(const int port, received_joystick_data *recv_j
 
     printf("udp server started!\n");
     udp_recv(pcb, udp_receive_callback, recv_joy_data);
+    printf("Now on UDP server receiving data from port:");
 
     while(true){
-        cyw43_arch_poll();
+        vTaskDelay(20);
+        //cyw43_arch_poll();
     }
 }
 
@@ -57,11 +63,7 @@ void udp_server::udp_receive_callback(void *arg, udp_pcb *pcb, pbuf *p, const ip
         printf("Received data: x = %i, y = %i, z = %i, roll = %i, pitch =%i, yaw = %i\n", 
                             recv_joy_data->x1, recv_joy_data->y1, recv_joy_data->z1, 
                             recv_joy_data->roll, recv_joy_data->pitch, recv_joy_data->yaw);
-        if(multicore_fifo_rvalid){
-            multicore_fifo_push_blocking((uint32_t) recv_joy_data);
-        }else{
-            multicore_fifo_drain();
-        }
+        xSemaphoreGive(gaits_mutex);
     }
     else {
         printf("Error: Received data exceeds buffer size.\n");

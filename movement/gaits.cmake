@@ -12,4 +12,5 @@ target_include_directories(${GAITS} INTERFACE ${CMAKE_CURRENT_LIST_DIR})
 
 target_link_libraries(${GAITS} INTERFACE
     inverse_kinematics
+    received_joystick_data
 )
