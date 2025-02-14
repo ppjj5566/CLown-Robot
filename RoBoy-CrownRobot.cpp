@@ -42,7 +42,8 @@ void adc_task(void *pvParameters)
     setup_voltage_sensor();
     setup_temp_sensor();
 
-    while(true){
+    while (true)
+    {
         const float conversion_factor = 3.3f / (1 << 12);
         adc_select_input(1);
         uint16_t result = adc_read();
@@ -58,9 +59,9 @@ void adc_task(void *pvParameters)
     }
 }
 
-
-
-void server_task(void *pvParameters){
+void server_task(void *pvParameters)
+{
+    wifi->connect_wifi("ipiptime", "Park98124");
     server->udp_server_task(joy_data);
 }
 
@@ -94,8 +95,8 @@ void movement_order_task(void *pvParameters)
         yaw = joy_data->yaw;
         if (x != 0 || y != 0 || z != 0)
             gait->move(joy_data);
-        auto recv_ip = server->get_recv_ip();
-        server->send_data(&recv_ip, port, (char *)joy_data, sizeof(received_joystick_data));
+        // auto recv_ip = server->get_recv_ip();
+        // server->send_data(&recv_ip, port, (char *)joy_data, sizeof(received_joystick_data));
     }
 }
 
@@ -104,9 +105,9 @@ int main()
     stdio_init_all();
     adc_init();
 
-    //send_and_get_char_from_tinyusb("Enter SSID: ", ssid);
-    //send_and_get_char_from_tinyusb("Enter Password: ", pw);
-    wifi->connect_wifi("ipiptime", "Park98124");
+    // send_and_get_char_from_tinyusb("Enter SSID: ", ssid);
+    // send_and_get_char_from_tinyusb("Enter Password: ", pw);
+    
 
     xTaskCreate(server_task, "server_task", 1024, NULL, 0, NULL);
     xTaskCreate(movement_order_task, "movement_order_task", 1024, NULL, 1, NULL);
@@ -116,8 +117,6 @@ int main()
     while (true)
     {
     }
-
-    // server->udp_server_task(12345, joy_data);
 
     return 0;
 }
