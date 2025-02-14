@@ -31,8 +31,7 @@ void udp_server::udp_server_task(received_joystick_data *recv_joy_data){
     printf("Now on UDP server receiving data from port:");
 
     while(true){
-        vTaskDelay(20);
-        //cyw43_arch_poll();
+        cyw43_arch_poll();
     }
 }
 
@@ -63,7 +62,6 @@ void udp_server::udp_receive_callback(void *arg, udp_pcb *pcb, pbuf *p, const ip
         printf("Received data: x = %i, y = %i, z = %i, roll = %i, pitch =%i, yaw = %i\n", 
                             recv_joy_data->x1, recv_joy_data->y1, recv_joy_data->z1, 
                             recv_joy_data->roll, recv_joy_data->pitch, recv_joy_data->yaw);
-        xSemaphoreGive(gaits_mutex);
     }
     else {
         printf("Error: Received data exceeds buffer size.\n");
