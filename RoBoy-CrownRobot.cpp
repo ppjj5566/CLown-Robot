@@ -76,6 +76,7 @@ int main(){
         servo_cluster->calibration(i).apply_three_pairs(460.0f, 1430.0f, 2400.0f, 0.0f, 90.0f, 180.0f);
     }
     servo_cluster->enable_all();
+    servo_cluster->all_to_value(90.0f);
 
     joy_data = new received_joystick_data();
     i_k = new inverse_kinematics(servo_cluster);

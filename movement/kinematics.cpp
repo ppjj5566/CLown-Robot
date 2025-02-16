@@ -5,12 +5,12 @@
 //TODO: make servos a pointer array
 
 float servo_state[6][3] = { // coxa tibia femur
-    {0.0f,0.0f,0.0f},         //1
-    {0.0f,0.0f,0.0f},           //2
-    {0.0f,0.0f,0.0f},          //3
-    {0.0f,0.0f,0.0f},         //4
-    {0.0f,0.0f,0.0f},          //6
-    {0.0f,0.0f,0.0f},        //5
+    {6.0f,2.0f,10.0f},         //1
+    {0.0f,-5.0f,0.0f},           //2
+    {0.0f,-8.0f,3.0f},          //3
+    {-7.0f,-4.0f,-7.0f},         //4
+    {7.0f,4.0f,7.0f},          //6
+    {-5.0f,12.0f,-7.0f},        //5
     };
 
 void Kinematics::endpoint(float x, float y, float z, int leg_num){
