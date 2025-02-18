@@ -1,15 +1,17 @@
 #include <stdio.h>
+
 #include "pico/stdlib.h"
 #include "pico/multicore.h"
+
 #include "hardware/adc.h"
 #include "hardware/timer.h"
 #include "hardware/flash.h"
-#include "usb_connection.c"
 
 #include "wifi_connection.cpp"
+#include "usb_connection.c"
 #include "udp_server.hpp"
-#include "gaits.h"
 #include "servo2040.hpp"
+#include "gaits.h"
 
 using namespace servo;
 
@@ -35,15 +37,15 @@ int x, y, z, roll, pitch, yaw;
 bool adc_callback(repeating_timer_t *rt){
     const float conversion_factor = 3.3f / (1 << 12);
     adc_select_input(1);
-    uint16_t result = adc_read();
+    uint16_t consumtion_res = adc_read();
     adc_select_input(0);
-    uint16_t result1 = adc_read();
+    uint16_t batt_voltage_res = adc_read();
     adc_select_input(4);
-    uint16_t result2 = adc_read();
+    uint16_t mcu_temp_res = adc_read();
     printf("Consumption: %.2fA, Batt: %.2fV, MCU Temperature: %.1f°C\n",  
-            (((float)result * conversion_factor) - 1.65f) / 0.09f,  
-            (float)result1 * conversion_factor * 8.5f,
-            27 - ((((float)result2 * conversion_factor) - 0.706)/0.001721));
+            (((float)consumtion_res * conversion_factor) - 1.65f) / 0.09f,  
+            (float)batt_voltage_res * conversion_factor * 8.5f,
+            27 - ((((float)mcu_temp_res * conversion_factor) - 0.706)/0.001721));
     return true;
 }
 
@@ -96,8 +98,6 @@ int main(){
     
     wifi->connect_wifi(ssid, pw);
     server->start_udp_server(12345, joy_data);
-
-    
 
     return 0;
 }
