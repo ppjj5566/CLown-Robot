@@ -55,7 +55,7 @@ void adc_task(void *pvParameters)
                (((float)result * conversion_factor) - 1.65f) / 0.09f,
                (float)result1 * conversion_factor * 8.5f,
                27 - ((((float)result2 * conversion_factor) - 0.706) / 0.001721));
-        vTaskDelay(5000);
+        vTaskDelay(pdMS_TO_TICKS(500));
     }
 }
 
@@ -107,8 +107,8 @@ int main()
     // send_and_get_char_from_tinyusb("Enter Password: ", pw);
     TaskHandle_t handleA, handleB;
 
-    xTaskCreate(server_task, "server_task", 512, NULL, 1, &handleA);
-    xTaskCreate(movement_order_task, "movement_order_task", 1024, NULL, 1, &handleB);
+    xTaskCreate(server_task, "server_task", 512, NULL, 0, &handleA);
+    xTaskCreate(movement_order_task, "movement_order_task", 1024, NULL, 0, &handleB);
     xTaskCreate(adc_task, "adc_task", 256, NULL, 1, &handleA);
 
     vTaskCoreAffinitySet(handleA, (1 << 0));

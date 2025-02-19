@@ -40,7 +40,7 @@ void gaits::move(received_joystick_data *joy_data)
                     i_k->body_kinematics(position_x, position_y, position_z, 0, 0, 0, 3);
                     i_k->body_kinematics(-position_x, -position_y, last_position.z, 0, 0, 0, 4);
                     i_k->body_kinematics(position_x, position_y, position_z, 0, 0, 0, 5);
-                    vTaskDelay(50);
+                    vTaskDelay(pdMS_TO_TICKS(10));
                 }
                 last_position.set(joy_data->x1, joy_data->y1, joy_data->z1);
                 this->sequence = false;
@@ -58,7 +58,7 @@ void gaits::move(received_joystick_data *joy_data)
                     i_k->body_kinematics(-position_x, -position_y, last_position.z, 0, 0, 0, 3);
                     i_k->body_kinematics(position_x, position_y, position_z, 0, 0, 0, 4);
                     i_k->body_kinematics(-position_x, -position_y, last_position.z, 0, 0, 0, 5);
-                    vTaskDelay(50);
+                    vTaskDelay(pdMS_TO_TICKS(50));
                 }
                 last_position.set(-joy_data->x1, -joy_data->y1, joy_data->z1);
                 this->sequence = true;

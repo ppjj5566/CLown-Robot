@@ -9,6 +9,7 @@
 #define RCV_FROM_IP              IP_ADDR_ANY
 #define MAX_ARRAY_SIZE           6
 #define MAX_BUFFER_SIZE          1024
+#define PORT                     12345
 
 udp_server::udp_server() {
     pcb = udp_new();
@@ -19,7 +20,7 @@ udp_server::udp_server() {
 }
 
 void udp_server::udp_server_task(received_joystick_data *recv_joy_data){
-    err_t bind = udp_bind(pcb, RCV_FROM_IP, 12345);
+    err_t bind = udp_bind(pcb, RCV_FROM_IP, PORT);
 
     if(bind != ERR_OK){
         printf("UDP bind failed\n");
@@ -28,7 +29,7 @@ void udp_server::udp_server_task(received_joystick_data *recv_joy_data){
 
     printf("udp server started!\n");
     udp_recv(pcb, udp_receive_callback, recv_joy_data);
-    printf("Now on UDP server receiving data from port:");
+    printf("Now on UDP server receiving data from port:%d\n", PORT);
 
     while(true){
         cyw43_arch_poll();
