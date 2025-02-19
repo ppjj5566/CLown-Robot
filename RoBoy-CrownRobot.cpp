@@ -1,9 +1,12 @@
 #include <stdio.h>
+
+//#include "pico/multicore.h"
 #include "pico/stdlib.h"
-// #include "pico/multicore.h"
-#include "hardware/adc.h"
-#include "hardware/timer.h"
+
 #include "hardware/flash.h"
+#include "hardware/timer.h"
+#include "hardware/adc.h"
+
 #include "usb_connection.c"
 #include "FreeRTOS.h"
 #include "semphr.h"
@@ -17,7 +20,7 @@
 
 using namespace servo;
 
-char ssid[64], pw[64];
+//char ssid[64], pw[64];
 const int port = 12345;
 
 const uint START_PIN = servo2040::SERVO_1;
@@ -30,9 +33,6 @@ wifi_connection *wifi = new wifi_connection();
 udp_server *server = new udp_server();
 received_joystick_data *joy_data = new received_joystick_data();
 
-ServoCluster *servo_cluster;
-
-inverse_kinematics *i_k;
 static gaits *gait;
 int x, y, z, roll, pitch, yaw;
 
@@ -67,24 +67,22 @@ void server_task(void *pvParameters)
 
 void init_servos()
 {
-    servo_cluster = new ServoCluster(pio0, 0, START_PIN, NUM_SERVOS);
+    ServoCluster *servo_cluster = new ServoCluster(pio0, 0, START_PIN, NUM_SERVOS);
     servo_cluster->init();
 
     for (size_t i = 0; i < NUM_SERVOS; i++)
     {
         servo_cluster->calibration(i).apply_three_pairs(460.0f, 1430.0f, 2400.0f, 0.0f, 90.0f, 180.0f);
     }
-
     servo_cluster->enable_all();
 
-    i_k = new inverse_kinematics(servo_cluster);
+    inverse_kinematics *i_k = new inverse_kinematics(servo_cluster);
     gait = new gaits(i_k);
 }
 
 void movement_order_task(void *pvParameters)
 {
     init_servos();
-
     while (true)
     {
         x = joy_data->x1;
@@ -93,7 +91,7 @@ void movement_order_task(void *pvParameters)
         roll = joy_data->roll;
         pitch = joy_data->pitch;
         yaw = joy_data->yaw;
-        if (x != 0 || y != 0 || z != 0)
+        if (x != 0 || y != 0)
             gait->move(joy_data);
         // auto recv_ip = server->get_recv_ip();
         // server->send_data(&recv_ip, port, (char *)joy_data, sizeof(received_joystick_data));
@@ -107,16 +105,16 @@ int main()
 
     // send_and_get_char_from_tinyusb("Enter SSID: ", ssid);
     // send_and_get_char_from_tinyusb("Enter Password: ", pw);
-    
+    TaskHandle_t handleA, handleB;
 
-    xTaskCreate(server_task, "server_task", 1024, NULL, 0, NULL);
-    xTaskCreate(movement_order_task, "movement_order_task", 1024, NULL, 1, NULL);
-    xTaskCreate(adc_task, "adc_task", 1024, NULL, 2, NULL);
+    xTaskCreate(server_task, "server_task", 512, NULL, 1, &handleA);
+    xTaskCreate(movement_order_task, "movement_order_task", 1024, NULL, 1, &handleB);
+    xTaskCreate(adc_task, "adc_task", 256, NULL, 1, &handleA);
+
+    vTaskCoreAffinitySet(handleA, (1 << 0));
+    vTaskCoreAffinitySet(handleB, (1 << 1));
+
     vTaskStartScheduler();
-
-    while (true)
-    {
-    }
 
     return 0;
 }
