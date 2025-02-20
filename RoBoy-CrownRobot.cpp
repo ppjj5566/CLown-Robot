@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-//#include "pico/multicore.h"
+#include "pico/multicore.h"
 #include "pico/stdlib.h"
 
 #include "hardware/flash.h"
@@ -20,56 +20,56 @@
 
 using namespace servo;
 
-//char ssid[64], pw[64];
-const int port = 12345;
+// char ssid[64], pw[64];
 
-const uint START_PIN = servo2040::SERVO_1;
-const uint END_PIN = servo2040::SERVO_18;
-const uint NUM_SERVOS = (END_PIN - START_PIN) + 1;
-
-extern xSemaphoreHandle mutex;
-Calibration *calibration[NUM_SERVOS];
-wifi_connection *wifi = new wifi_connection();
-udp_server *server = new udp_server();
 received_joystick_data *joy_data = new received_joystick_data();
 
-static gaits *gait;
-int x, y, z, roll, pitch, yaw;
+gaits *gait;
 
 void adc_task(void *pvParameters)
 {
     setup_amp_sensor();
     setup_voltage_sensor();
     setup_temp_sensor();
+    const float conversion_factor = 3.3f / (1 << 12);
 
     while (true)
     {
-        const float conversion_factor = 3.3f / (1 << 12);
         adc_select_input(1);
         uint16_t result = adc_read();
         adc_select_input(0);
         uint16_t result1 = adc_read();
         adc_select_input(4);
         uint16_t result2 = adc_read();
+
+        float current = (((float)result * conversion_factor) - 1.65f) / 0.09f;
+        float voltage = (float)result1 * conversion_factor * 8.5f;
+        float temp = 27 - ((((float)result2 * conversion_factor) - 0.706) / 0.001721);
+
         printf("Consumption: %.2fA, Batt: %.2fV, MCU Temperature: %.1f°C\n",
-               (((float)result * conversion_factor) - 1.65f) / 0.09f,
-               (float)result1 * conversion_factor * 8.5f,
-               27 - ((((float)result2 * conversion_factor) - 0.706) / 0.001721));
+               current - 1.65f, voltage * 8.5f, temp);
+        //ip_addr_t recv_ip = server->get_recv_ip();
+        //server->send_data((const char *)&current, sizeof(current));
         vTaskDelay(pdMS_TO_TICKS(500));
     }
 }
 
 void server_task(void *pvParameters)
 {
+    wifi_connection *wifi = new wifi_connection();
+    udp_server *server = new udp_server();
     wifi->connect_wifi("ipiptime", "Park98124");
     server->udp_server_task(joy_data);
 }
 
 void init_servos()
 {
+    const uint START_PIN = servo2040::SERVO_1;
+    const uint END_PIN = servo2040::SERVO_18;
+    const uint NUM_SERVOS = (END_PIN - START_PIN) + 1;
+
     ServoCluster *servo_cluster = new ServoCluster(pio0, 0, START_PIN, NUM_SERVOS);
     servo_cluster->init();
-
     for (size_t i = 0; i < NUM_SERVOS; i++)
     {
         servo_cluster->calibration(i).apply_three_pairs(460.0f, 1430.0f, 2400.0f, 0.0f, 90.0f, 180.0f);
@@ -82,7 +82,9 @@ void init_servos()
 
 void movement_order_task(void *pvParameters)
 {
+    int x, y, z, roll, pitch, yaw;
     init_servos();
+
     while (true)
     {
         x = joy_data->x1;
@@ -93,8 +95,6 @@ void movement_order_task(void *pvParameters)
         yaw = joy_data->yaw;
         if (x != 0 || y != 0)
             gait->move(joy_data);
-        // auto recv_ip = server->get_recv_ip();
-        // server->send_data(&recv_ip, port, (char *)joy_data, sizeof(received_joystick_data));
     }
 }
 

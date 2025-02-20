@@ -1,10 +1,10 @@
-#include "udp_server.hpp"
 #include "pico/multicore.h"
 #include "hardware/irq.h"
+#include "udp_server.hpp"
 #include "FreeRTOS.h"
 #include "semphr.h"
-#include "task.h"
 #include "gaits.h"
+#include "task.h"
 
 #define RCV_FROM_IP              IP_ADDR_ANY
 #define MAX_ARRAY_SIZE           6
@@ -43,6 +43,10 @@ void udp_server::send_data(const ip_addr_t *addr , const int port, const char *d
         udp_sendto(pcb, p, addr, port);
         pbuf_free(p);
     }
+}
+
+void udp_server::send_data(const char *data, const int len){
+    send_data(&recv_ip, PORT + 1, data, len);
 }
 
 void udp_server::udp_receive_callback(void *arg, udp_pcb *pcb, pbuf *p, const ip_addr_t *addr, u16_t port) {
