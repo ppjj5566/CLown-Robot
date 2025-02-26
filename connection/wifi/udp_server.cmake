@@ -14,6 +14,5 @@ target_link_libraries(${UDP_SERVER} INTERFACE
     pico_stdlib
     pico_cyw43_arch_lwip_threadsafe_background
     received_joystick_data
-    FreeRTOS-Kernel-Heap4
     gaits
 )

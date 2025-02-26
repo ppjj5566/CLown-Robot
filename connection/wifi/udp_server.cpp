@@ -1,10 +1,7 @@
 #include "pico/multicore.h"
 #include "hardware/irq.h"
 #include "udp_server.hpp"
-#include "FreeRTOS.h"
-#include "semphr.h"
-#include "gaits.h"
-#include "task.h"
+
 
 #define RCV_FROM_IP              IP_ADDR_ANY
 #define MAX_ARRAY_SIZE           6
@@ -50,12 +47,10 @@ void udp_server::send_data(const char *data, const int len){
 }
 
 void udp_server::udp_receive_callback(void *arg, udp_pcb *pcb, pbuf *p, const ip_addr_t *addr, u16_t port) {
-    received_joystick_data *recv_joy_data = (received_joystick_data *)arg;
     const size_t num_ints = 6;
     const size_t len = sizeof(int32_t) * num_ints;
+    received_joystick_data *recv_joy_data = (received_joystick_data *)arg;
     int32_t received_data[num_ints];
-    udp_server *server = static_cast<udp_server*>(arg);
-    server->recv_ip = *addr;
     if(p->len == len){
         memcpy(received_data, p->payload, p->len);
         recv_joy_data->x1 = received_data[0];
@@ -65,8 +60,8 @@ void udp_server::udp_receive_callback(void *arg, udp_pcb *pcb, pbuf *p, const ip
         recv_joy_data->pitch = received_data[4];
         recv_joy_data->yaw = received_data[5];
         printf("Received data: x = %i, y = %i, z = %i, roll = %i, pitch =%i, yaw = %i\n", 
-                            recv_joy_data->x1, recv_joy_data->y1, recv_joy_data->z1, 
-                            recv_joy_data->roll, recv_joy_data->pitch, recv_joy_data->yaw);
+                    recv_joy_data->x1, recv_joy_data->y1, recv_joy_data->z1, 
+                    recv_joy_data->roll, recv_joy_data->pitch, recv_joy_data->yaw);
     }
     else {
         printf("Error: Received data exceeds buffer size.\n");
