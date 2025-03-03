@@ -2,24 +2,27 @@
 #include "hardware/irq.h"
 #include "udp_server.hpp"
 
+#define RCV_FROM_IP IP_ADDR_ANY
+#define MAX_ARRAY_SIZE 6
+#define MAX_BUFFER_SIZE 1024
+#define PORT 12345
 
-#define RCV_FROM_IP              IP_ADDR_ANY
-#define MAX_ARRAY_SIZE           6
-#define MAX_BUFFER_SIZE          1024
-#define PORT                     12345
-
-udp_server::udp_server() {
+udp_server::udp_server()
+{
     pcb = udp_new();
-    if (pcb == nullptr){
+    if (pcb == nullptr)
+    {
         printf("Error creating UDP PDB");
         return;
     }
 }
 
-void udp_server::udp_server_task(received_joystick_data *recv_joy_data){
+void udp_server::udp_server_task(received_joystick_data *recv_joy_data)
+{
     err_t bind = udp_bind(pcb, RCV_FROM_IP, PORT);
 
-    if(bind != ERR_OK){
+    if (bind != ERR_OK)
+    {
         printf("UDP bind failed\n");
         return;
     }
@@ -28,30 +31,37 @@ void udp_server::udp_server_task(received_joystick_data *recv_joy_data){
     udp_recv(pcb, udp_receive_callback, recv_joy_data);
     printf("Now on UDP server receiving data from port:%d\n", PORT);
 
-    while(true){
+    while (true)
+    {
         cyw43_arch_poll();
     }
 }
 
-void udp_server::send_data(const ip_addr_t *addr , const int port, const char *data, const int len){
+void udp_server::send_data(const ip_addr_t *addr, const int port, const char *data, const int len)
+{
     pbuf *p = pbuf_alloc(PBUF_TRANSPORT, len, PBUF_RAM);
-    if(p != nullptr){
+    if (p != nullptr)
+    {
         memcpy(p->payload, data, len);
         udp_sendto(pcb, p, addr, port);
         pbuf_free(p);
     }
 }
 
-void udp_server::send_data(const char *data, const int len){
+void udp_server::send_data(const char *data, const int len)
+{
     send_data(&recv_ip, PORT + 1, data, len);
 }
 
-void udp_server::udp_receive_callback(void *arg, udp_pcb *pcb, pbuf *p, const ip_addr_t *addr, u16_t port) {
+void udp_server::udp_receive_callback(void *arg, udp_pcb *pcb, pbuf *p, const ip_addr_t *addr, u16_t port)
+{
     const size_t num_ints = 6;
     const size_t len = sizeof(int32_t) * num_ints;
     received_joystick_data *recv_joy_data = (received_joystick_data *)arg;
     int32_t received_data[num_ints];
-    if(p->len == len){
+    int32_t received_mode_data[1];
+    if (p->len == len)
+    {
         memcpy(received_data, p->payload, p->len);
         recv_joy_data->x1 = received_data[0];
         recv_joy_data->y1 = received_data[1];
@@ -59,17 +69,25 @@ void udp_server::udp_receive_callback(void *arg, udp_pcb *pcb, pbuf *p, const ip
         recv_joy_data->roll = received_data[3];
         recv_joy_data->pitch = received_data[4];
         recv_joy_data->yaw = received_data[5];
-        printf("Received data: x = %i, y = %i, z = %i, roll = %i, pitch =%i, yaw = %i\n", 
-                    recv_joy_data->x1, recv_joy_data->y1, recv_joy_data->z1, 
-                    recv_joy_data->roll, recv_joy_data->pitch, recv_joy_data->yaw);
+        printf("Received data: x = %i, y = %i, z = %i, roll = %i, pitch =%i, yaw = %i\n",
+               recv_joy_data->x1, recv_joy_data->y1, recv_joy_data->z1,
+               recv_joy_data->roll, recv_joy_data->pitch, recv_joy_data->yaw);
     }
-    else {
+    else if (p->len == 1)
+    {
+        memcpy(received_mode_data, p->payload, p->len);
+        recv_joy_data->mode = received_mode_data[0];
+        printf("Received mode data: mode = %i\n", recv_joy_data->mode);
+    }
+    else
+    {
         printf("Error: Received data exceeds buffer size.\n");
     }
     pbuf_free(p);
 }
 
-udp_server::~udp_server(){   
+udp_server::~udp_server()
+{
     udp_remove(pcb);
     printf("udp connection disabled!\n");
 }

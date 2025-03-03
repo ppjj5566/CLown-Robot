@@ -48,8 +48,6 @@ void adc_task(void *pvParameters)
 
         printf("Consumption: %.2fA, Batt: %.2fV, MCU Temperature: %.1f°C\n",
                current - 1.65f, voltage * 8.5f, temp);
-        //ip_addr_t recv_ip = server->get_recv_ip();
-        //server->send_data((const char *)&current, sizeof(current));
         vTaskDelay(pdMS_TO_TICKS(500));
     }
 }
@@ -82,9 +80,9 @@ void init_servos()
 
 void movement_order_task(void *pvParameters)
 {
-    int x, y, z, roll, pitch, yaw;
     init_servos();
-
+    int x, y, z, roll, pitch, yaw;
+    
     while (true)
     {
         x = joy_data->x1;
@@ -107,8 +105,8 @@ int main()
     // send_and_get_char_from_tinyusb("Enter Password: ", pw);
     TaskHandle_t handleA, handleB;
 
-    xTaskCreate(server_task, "server_task", 512, NULL, 0, &handleA);
-    xTaskCreate(movement_order_task, "movement_order_task", 1024, NULL, 0, &handleB);
+    xTaskCreate(server_task, "server_task", 256, NULL, 0, &handleA);
+    xTaskCreate(movement_order_task, "movement_order_task", 512, NULL, 0, &handleB);
     xTaskCreate(adc_task, "adc_task", 256, NULL, 1, &handleA);
 
     vTaskCoreAffinitySet(handleA, (1 << 0));
