@@ -13,8 +13,9 @@
 #include "queue.h"
 #include "task.h"
 
-#include "wifi_connection.cpp"
-#include "udp_server.hpp"
+#include "thread_safe_udp_server.c"
+// #include "wifi_connection.cpp"
+// #include "udp_server.hpp"
 #include "servo2040.hpp"
 #include "gaits.h"
 
@@ -23,6 +24,7 @@ using namespace servo;
 // char ssid[64], pw[64];
 
 received_joystick_data *joy_data = new received_joystick_data();
+sys_mutex_t udp_mutex;
 
 gaits *gait;
 
@@ -32,9 +34,13 @@ void adc_task(void *pvParameters)
     setup_voltage_sensor();
     setup_temp_sensor();
     const float conversion_factor = 3.3f / (1 << 12);
+    struct pbuf *p;
+    ip_addr_t dest_addr;
+    IP4_ADDR(&dest_addr, 192, 168, 0, 26);
 
     while (true)
     {
+        char buffer[100];
         adc_select_input(1);
         uint16_t result = adc_read();
         adc_select_input(0);
@@ -46,19 +52,35 @@ void adc_task(void *pvParameters)
         float voltage = (float)result1 * conversion_factor * 8.5f;
         float temp = 27 - ((((float)result2 * conversion_factor) - 0.706) / 0.001721);
 
-        printf("Consumption: %.2fA, Batt: %.2fV, MCU Temperature: %.1f°C\n",
-               current - 1.65f, voltage * 8.5f, temp);
+        //printf("Consumption: %.2fA, Batt: %.2fV, MCU Temperature: %.1f°C\n",
+               //current - 1.65f, voltage * 8.5f, temp);
+        sprintf(buffer, "Consumption: %.2fA, Batt: %.2fV, MCU Temperature: %.1f°C\n",
+            current - 1.65f, voltage * 8.5f, temp);
+
+        sys_mutex_lock(&udp_mutex);
+        p = pbuf_alloc(PBUF_TRANSPORT, strlen(buffer), PBUF_RAM);
+            if (p != NULL)
+            {
+                memcpy(p->payload, buffer, strlen(buffer));
+                udp_sendto(pcb, p, &dest_addr, UDP_SEND_PORT);
+                pbuf_free(p);
+            }
+            else{
+                printf("Failed to allocate pbuf\n");
+            }
+        sys_mutex_unlock(&udp_mutex);
+
         vTaskDelay(pdMS_TO_TICKS(500));
     }
 }
 
-void server_task(void *pvParameters)
-{
-    wifi_connection *wifi = new wifi_connection();
-    udp_server *server = new udp_server();
-    wifi->connect_wifi("ipiptime", "Park98124");
-    server->udp_server_task(joy_data);
-}
+// void server_task(void *pvParameters)
+// {
+//     wifi_connection *wifi = new wifi_connection();
+//     udp_server *server = new udp_server();
+//     wifi->connect_wifi("ipiptime", "Park98124");
+//     server->udp_server_task(joy_data);
+// }
 
 void init_servos()
 {
@@ -101,13 +123,23 @@ int main()
     stdio_init_all();
     adc_init();
 
+    if (cyw43_arch_init())
+    {
+        printf("failed to initialise\n");
+        return -1;
+    }
+    printf("cyw43 initialised\n");
+    
+
     // send_and_get_char_from_tinyusb("Enter SSID: ", ssid);
     // send_and_get_char_from_tinyusb("Enter Password: ", pw);
     TaskHandle_t handleA, handleB;
+    
+    sys_mutex_new(&udp_mutex);
 
-    xTaskCreate(server_task, "server_task", 256, NULL, 0, &handleA);
-    xTaskCreate(movement_order_task, "movement_order_task", 512, NULL, 0, &handleB);
-    xTaskCreate(adc_task, "adc_task", 256, NULL, 1, &handleA);
+    xTaskCreate(udp_task, "server_task", 2048, NULL, 0, &handleA);
+    xTaskCreate(movement_order_task, "movement_order_task", 512, NULL, 1, &handleB);
+    xTaskCreate(adc_task, "adc_task", 256, NULL, 2, &handleA);
 
     vTaskCoreAffinitySet(handleA, (1 << 0));
     vTaskCoreAffinitySet(handleB, (1 << 1));
