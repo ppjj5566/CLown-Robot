@@ -1,4 +1,4 @@
-# CROWN ROBOT
+# CLOWN ROBOT
 - it's hexapod that I design hardware software and pcb
 - it's is fully modulated programe so you can add ai cammera or other assecerly on top of the robot
 
