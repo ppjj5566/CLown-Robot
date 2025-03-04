@@ -28,5 +28,6 @@ public:
     int lerp(int start, int end, int t);
     int bazier_curve(int start, int end, int height, int t);
     void move(received_joystick_data *joy_data);
+    void stop();
     ~gaits() {};
 };

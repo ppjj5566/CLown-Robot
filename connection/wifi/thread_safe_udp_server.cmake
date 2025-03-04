@@ -15,4 +15,5 @@ target_link_libraries(${THREAD_SAFE_UDP_SERVER} INTERFACE
     pico_cyw43_arch_lwip_threadsafe_background
     pico_async_context_freertos
     FreeRTOS-Kernel-Heap4
+    received_joystick_data
 )

@@ -52,22 +52,23 @@ void adc_task(void *pvParameters)
         float voltage = (float)result1 * conversion_factor * 8.5f;
         float temp = 27 - ((((float)result2 * conversion_factor) - 0.706) / 0.001721);
 
-        //printf("Consumption: %.2fA, Batt: %.2fV, MCU Temperature: %.1f°C\n",
-               //current - 1.65f, voltage * 8.5f, temp);
+        // printf("Consumption: %.2fA, Batt: %.2fV, MCU Temperature: %.1f°C\n",
+        // current - 1.65f, voltage * 8.5f, temp);
         sprintf(buffer, "Consumption: %.2fA, Batt: %.2fV, MCU Temperature: %.1f°C\n",
-            current - 1.65f, voltage * 8.5f, temp);
+                current - 1.65f, voltage * 8.5f, temp);
 
         sys_mutex_lock(&udp_mutex);
         p = pbuf_alloc(PBUF_TRANSPORT, strlen(buffer), PBUF_RAM);
-            if (p != NULL)
-            {
-                memcpy(p->payload, buffer, strlen(buffer));
-                udp_sendto(pcb, p, &dest_addr, UDP_SEND_PORT);
-                pbuf_free(p);
-            }
-            else{
-                printf("Failed to allocate pbuf\n");
-            }
+        if (p != NULL)
+        {
+            memcpy(p->payload, buffer, strlen(buffer));
+            udp_sendto(pcb, p, &dest_addr, UDP_SEND_PORT);
+            pbuf_free(p);
+        }
+        else
+        {
+            printf("Failed to allocate pbuf\n");
+        }
         sys_mutex_unlock(&udp_mutex);
 
         vTaskDelay(pdMS_TO_TICKS(500));
@@ -103,18 +104,24 @@ void init_servos()
 void movement_order_task(void *pvParameters)
 {
     init_servos();
-    int x, y, z, roll, pitch, yaw;
-    
+
     while (true)
     {
-        x = joy_data->x1;
-        y = joy_data->y1;
-        z = joy_data->z1;
-        roll = joy_data->roll;
-        pitch = joy_data->pitch;
-        yaw = joy_data->yaw;
-        if (x != 0 || y != 0)
-            gait->move(joy_data);
+        switch (joy_data->mode)
+        {
+        case 0:
+            if (joy_data->x1 != 0 || joy_data->y1 != 0)
+            {
+                gait->move(joy_data);
+            }
+            else
+            {
+                gait->stop();
+            }
+            break;
+        default:
+            break;
+        }
     }
 }
 
@@ -129,15 +136,14 @@ int main()
         return -1;
     }
     printf("cyw43 initialised\n");
-    
 
     // send_and_get_char_from_tinyusb("Enter SSID: ", ssid);
     // send_and_get_char_from_tinyusb("Enter Password: ", pw);
     TaskHandle_t handleA, handleB;
-    
+
     sys_mutex_new(&udp_mutex);
 
-    xTaskCreate(udp_task, "server_task", 2048, NULL, 0, &handleA);
+    xTaskCreate(udp_task, "server_task", 2048, joy_data, 0, &handleA);
     xTaskCreate(movement_order_task, "movement_order_task", 512, NULL, 1, &handleB);
     xTaskCreate(adc_task, "adc_task", 256, NULL, 2, &handleA);
 
