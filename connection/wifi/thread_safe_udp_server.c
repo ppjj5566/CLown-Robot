@@ -68,8 +68,11 @@ void udp_task(void *pvParameters)
         return;
     }
 
+    struct netif *netif = &cyw43_state.netif[0];
+    ip_addr_t recv_ip = netif->ip_addr;
+
     udp_recv(pcb, udp_recv_callback, (struct received_joystick_data *)pvParameters);
-    printf("UDP Server listening on port %d\n", UDP_PORT);
+    printf("UDP Server listening on : %s::%d\n", ip4addr_ntoa(&recv_ip), UDP_PORT);
 
     while (1)
     {

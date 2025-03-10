@@ -36,9 +36,9 @@ namespace servo {
 
     const uint USER_SW = 23;
 
-    const uint ADC_ADDR_0 = 22;
-    const uint ADC_ADDR_1 = 24;
-    const uint ADC_ADDR_2 = 25;
+    // const uint ADC_ADDR_0 = 22;
+    // const uint ADC_ADDR_1 = 24;
+    // const uint ADC_ADDR_2 = 25;
 
     const uint ADC0 = 26;
     const uint ADC1 = 27;

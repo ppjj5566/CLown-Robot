@@ -37,20 +37,13 @@ void neo_pixel_task(void *pvParameters)
 {
     WS2812 led_bar(servo2040::NUM_LEDS, pio1, 1, servo2040::LED_DATA);
     led_bar.start();
-    for (auto i = 0u; i < servo2040::NUM_LEDS; i++)
+    while (true)
     {
-        for (uint8_t c = 0u; c < 255; c++)
+        for (auto i = 0u; i < servo2040::NUM_LEDS; i++)
         {
-            led_bar.set_rgb(i, c, c, c);
+            led_bar.set_rgb(i, 255, 255, 255);
         }
-        for (uint8_t c = 0u; c < 255; c++)
-        {
-            led_bar.set_rgb(i, c, 0, 0);
-        }
-        for (uint8_t c = 0u; c < 255; c++)
-        {
-            led_bar.set_rgb(i, 0, c, 0);
-        }
+        vTaskDelay(pdMS_TO_TICKS(5));
     }
 }
 
@@ -171,9 +164,9 @@ int main()
     //sys_mutex_new(&udp_mutex);
 
     xTaskCreate(udp_task, "server_task", 2048, joy_data, 0, &handleA);
-    xTaskCreate(movement_order_task, "movement_order_task", 512, NULL, 1, &handleB);
+    xTaskCreate(movement_order_task, "movement_order_task", 1024, NULL, 1, &handleB);
     xTaskCreate(adc_task, "adc_task", 256, NULL, 2, &handleA);
-    xTaskCreate(neo_pixel_task, "neo_pixel_task", 512, NULL, 3, &handleA);
+    xTaskCreate(neo_pixel_task, "neo_pixel_task", 256, NULL, 3, NULL);
 
     vTaskCoreAffinitySet(handleA, (1 << 0));
     vTaskCoreAffinitySet(handleB, (1 << 1));

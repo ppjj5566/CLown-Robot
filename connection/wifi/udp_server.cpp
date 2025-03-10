@@ -20,6 +20,8 @@ udp_server::udp_server()
 void udp_server::udp_server_task(received_joystick_data *recv_joy_data)
 {
     err_t bind = udp_bind(pcb, RCV_FROM_IP, PORT);
+    struct netif *netif = &cyw43_state.netif[0];
+    ip_addr_t recv_ip = netif->ip_addr;
 
     if (bind != ERR_OK)
     {
@@ -29,7 +31,7 @@ void udp_server::udp_server_task(received_joystick_data *recv_joy_data)
 
     printf("udp server started!\n");
     udp_recv(pcb, udp_receive_callback, recv_joy_data);
-    printf("Now on UDP server receiving data from port:%d\n", PORT);
+    printf("Now on UDP server receiving data from port:  %s::%d\n", ip4addr_ntoa(&recv_ip) ,PORT);
 
     while (true)
     {
