@@ -14,19 +14,45 @@
 #include "task.h"
 
 #include "thread_safe_udp_server.c"
-// #include "wifi_connection.cpp"
-// #include "udp_server.hpp"
 #include "servo2040.hpp"
 #include "gaits.h"
 
 using namespace servo;
+using namespace plasma;
 
 // char ssid[64], pw[64];
+
+const uint SPEED = 5;
+// constexpr float BRIGHTNESS = 1.0f;
+const uint UPDATES = 50;
+
+
 
 received_joystick_data *joy_data = new received_joystick_data();
 sys_mutex_t udp_mutex;
 
 gaits *gait;
+
+void neo_pixel_task(void *pvParameters)
+{
+    WS2812 led_bar(servo2040::NUM_LEDS, pio1, 1, servo2040::LED_DATA);
+    led_bar.start();
+    for (auto i = 0u; i < servo2040::NUM_LEDS; i++)
+    {
+        for (uint8_t c = 0u; c < 255; c++)
+        {
+            led_bar.set_rgb(i, c, c, c);
+        }
+        for (uint8_t c = 0u; c < 255; c++)
+        {
+            led_bar.set_rgb(i, c, 0, 0);
+        }
+        for (uint8_t c = 0u; c < 255; c++)
+        {
+            led_bar.set_rgb(i, 0, c, 0);
+        }
+    }
+}
 
 void adc_task(void *pvParameters)
 {
@@ -96,6 +122,7 @@ void init_servos()
         servo_cluster->calibration(i).apply_three_pairs(460.0f, 1430.0f, 2400.0f, 0.0f, 90.0f, 180.0f);
     }
     servo_cluster->enable_all();
+    servo_cluster->all_to_mid();
 
     inverse_kinematics *i_k = new inverse_kinematics(servo_cluster);
     gait = new gaits(i_k);
@@ -141,16 +168,22 @@ int main()
     // send_and_get_char_from_tinyusb("Enter Password: ", pw);
     TaskHandle_t handleA, handleB;
 
-    sys_mutex_new(&udp_mutex);
+    //sys_mutex_new(&udp_mutex);
 
     xTaskCreate(udp_task, "server_task", 2048, joy_data, 0, &handleA);
     xTaskCreate(movement_order_task, "movement_order_task", 512, NULL, 1, &handleB);
     xTaskCreate(adc_task, "adc_task", 256, NULL, 2, &handleA);
+    xTaskCreate(neo_pixel_task, "neo_pixel_task", 512, NULL, 3, &handleA);
 
     vTaskCoreAffinitySet(handleA, (1 << 0));
     vTaskCoreAffinitySet(handleB, (1 << 1));
 
     vTaskStartScheduler();
 
+    while (true)
+    {
+        /* code */
+    }
+    
     return 0;
 }

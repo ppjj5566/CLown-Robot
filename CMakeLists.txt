@@ -61,7 +61,6 @@ pico_enable_stdio_usb(RoBoy-CrownRobot 1)
 target_link_libraries(RoBoy-CrownRobot
   pico_async_context_freertos
   FreeRTOS-Kernel-Heap4
-  # wifi_connection
   thread_safe_udp_server
   pico_multicore
   hardware_adc
