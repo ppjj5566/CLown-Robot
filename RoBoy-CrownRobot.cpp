@@ -26,26 +26,23 @@ const uint SPEED = 5;
 // constexpr float BRIGHTNESS = 1.0f;
 const uint UPDATES = 50;
 
-
-
 received_joystick_data *joy_data = new received_joystick_data();
 sys_mutex_t udp_mutex;
-
+// WS2812 led_bar(servo2040::NUM_LEDS, pio1, 1, servo2040::LED_DATA);
 gaits *gait;
 
-void neo_pixel_task(void *pvParameters)
-{
-    WS2812 led_bar(servo2040::NUM_LEDS, pio1, 1, servo2040::LED_DATA);
-    led_bar.start();
-    while (true)
-    {
-        for (auto i = 0u; i < servo2040::NUM_LEDS; i++)
-        {
-            led_bar.set_rgb(i, 255, 255, 255);
-        }
-        vTaskDelay(pdMS_TO_TICKS(5));
-    }
-}
+// void neo_pixel_task(void *pvParameters)
+// {
+//     led_bar.start();
+//     while (true)
+//     {
+//         for (auto i = 0u; i < servo2040::NUM_LEDS; i++)
+//         {
+//             led_bar.set_rgb(i, 255, 255, 255);
+//         }
+//         vTaskDelay(pdMS_TO_TICKS(5));
+//     }
+// }
 
 void adc_task(void *pvParameters)
 {
@@ -115,7 +112,7 @@ void init_servos()
         servo_cluster->calibration(i).apply_three_pairs(460.0f, 1430.0f, 2400.0f, 0.0f, 90.0f, 180.0f);
     }
     servo_cluster->enable_all();
-    servo_cluster->all_to_mid();
+    //servo_cluster->all_to_mid();
 
     inverse_kinematics *i_k = new inverse_kinematics(servo_cluster);
     gait = new gaits(i_k);
@@ -163,10 +160,10 @@ int main()
 
     //sys_mutex_new(&udp_mutex);
 
-    xTaskCreate(udp_task, "server_task", 2048, joy_data, 0, &handleA);
-    xTaskCreate(movement_order_task, "movement_order_task", 1024, NULL, 1, &handleB);
-    xTaskCreate(adc_task, "adc_task", 256, NULL, 2, &handleA);
-    xTaskCreate(neo_pixel_task, "neo_pixel_task", 256, NULL, 3, NULL);
+    //xTaskCreate(udp_task, "server_task", 2048, joy_data, 0, &handleA);
+    xTaskCreate(movement_order_task, "movement_order_task", 2048, NULL, 0, &handleA);
+    //xTaskCreate(adc_task, "adc_task", 256, NULL, 2, &handleA);
+    //xTaskCreate(neo_pixel_task, "neo_pixel_task", 256, NULL, 3, &handleB);
 
     vTaskCoreAffinitySet(handleA, (1 << 0));
     vTaskCoreAffinitySet(handleB, (1 << 1));
