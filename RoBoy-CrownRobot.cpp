@@ -27,22 +27,22 @@ const uint SPEED = 5;
 const uint UPDATES = 50;
 
 received_joystick_data *joy_data = new received_joystick_data();
-//sys_mutex_t udp_mutex;
-//WS2812 led_bar(servo2040::NUM_LEDS, pio0, 0, servo2040::LED_DATA);
+sys_mutex_t udp_mutex;
+WS2812 led_bar(servo2040::NUM_LEDS, pio0, 0, servo2040::LED_DATA);
 gaits *gait;
 
-// void neo_pixel_task(void *pvParameters)
-// {
-//     led_bar.start();
-//     while (true)
-//     {
-//         for (auto i = 0u; i < servo2040::NUM_LEDS; i++)
-//         {
-//             led_bar.set_rgb(i, 255, 255, 255);
-//         }
-//         vTaskDelay(pdMS_TO_TICKS(5));
-//     }
-// }
+void neo_pixel_task(void *pvParameters)
+{
+    led_bar.start();
+    while (true)
+    {
+        for (auto i = 0u; i < servo2040::NUM_LEDS; i++)
+        {
+            led_bar.set_rgb(i, 255, 255, 255);
+        }
+        vTaskDelay(pdMS_TO_TICKS(5));
+    }
+}
 
 void adc_task(void *pvParameters)
 {
@@ -67,7 +67,7 @@ void adc_task(void *pvParameters)
         float current = (((float)result * conversion_factor) - 1.65f) / 0.09f;
         float voltage = (float)result1 * conversion_factor * 8.5f;
         float temp = 27 - ((((float)result2 * conversion_factor) - 0.706) / 0.001721);
-        
+
         // printf("Consumption: %.2fA, Batt: %.2fV, MCU Temperature: %.1f°C\n",
         // current - 1.65f, voltage * 8.5f, temp);
         sprintf(buffer, "Consumption: %.2fA, Batt: %.2fV, MCU Temperature: %.1f°C\n",
@@ -105,7 +105,7 @@ void init_servos()
     const uint END_PIN = servo2040::SERVO_18;
     const uint NUM_SERVOS = (END_PIN - START_PIN) + 1;
 
-    ServoCluster *servo_cluster = new ServoCluster(pio0, 0, START_PIN, NUM_SERVOS);
+    ServoCluster *servo_cluster = new ServoCluster(pio0, 1, START_PIN, NUM_SERVOS);
     servo_cluster->init();
     for (size_t i = 0; i < NUM_SERVOS; i++)
     {
@@ -121,24 +121,19 @@ void init_servos()
 void movement_order_task(void *pvParameters)
 {
     init_servos();
+    gait->stop();
 
     while (true)
     {
         switch (joy_data->mode)
         {
         case 0:
-            if (joy_data->x1 != 0 || joy_data->y1 != 0)
-            {
-                gait->move(joy_data);
-            }
-            else
-            {
-                gait->stop();
-            }
+            gait->move(joy_data);
             break;
         default:
             break;
         }
+        vTaskDelay(pdMS_TO_TICKS(1));
     }
 }
 
@@ -158,15 +153,15 @@ int main()
     // send_and_get_char_from_tinyusb("Enter Password: ", pw);
     TaskHandle_t handleA, handleB;
 
-    //sys_mutex_new(&udp_mutex);
+    sys_mutex_new(&udp_mutex);
 
-    //xTaskCreate(udp_task, "server_task", 2048, joy_data, 0, &handleA);
+    xTaskCreate(udp_task, "server_task", 1024, joy_data, 0, &handleA);
     xTaskCreate(movement_order_task, "movement_order_task", 2048, NULL, 0, &handleA);
-    //xTaskCreate(adc_task, "adc_task", 256, NULL, 2, &handleA);
-    //xTaskCreate(neo_pixel_task, "neo_pixel_task", 256, NULL, 3, &handleB);
+    xTaskCreate(adc_task, "adc_task", 256, NULL, 2, &handleA);
+    xTaskCreate(neo_pixel_task, "neo_pixel_task", 256, NULL, 3, &handleB);
 
     vTaskCoreAffinitySet(handleA, (1 << 0));
-//    vTaskCoreAffinitySet(handleB, (1 << 1));
+    vTaskCoreAffinitySet(handleB, (1 << 1));
 
     vTaskStartScheduler();
 
@@ -174,6 +169,6 @@ int main()
     {
         /* code */
     }
-    
+
     return 0;
 }

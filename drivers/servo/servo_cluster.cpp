@@ -508,7 +508,7 @@ namespace servo {
   }
 
   void ServoCluster::create_servo_states(const Calibration& calibration, bool auto_phase) {
-    uint8_t servo_count = pwms.get_chan_count();
+    uint8_t servo_count = pwms.get_chan_count(); 
     if(servo_count > 0) {
       for(uint servo = 0; servo < servo_count; servo++) {
         states[servo] = ServoState(calibration);

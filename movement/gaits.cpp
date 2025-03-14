@@ -75,4 +75,5 @@ void gaits::stop(){
     i_k->body_kinematics(0, 0, -30, 0, 0, 0, 3);
     i_k->body_kinematics(0, 0, -30, 0, 0, 0, 4);
     i_k->body_kinematics(0, 0, -30, 0, 0, 0, 5);
+    vTaskDelay(pdMS_TO_TICKS(100));
 }
