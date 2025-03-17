@@ -18,6 +18,14 @@ private:
             this->y = y;
             this->z = z;
         }
+        void set(int x, int y, int z, int roll, int pitch, int yaw){
+            this->x = x;
+            this->y = y;
+            this->z = z;
+            this->roll = roll;
+            this->pitch = pitch;
+            this->yaw = yaw;
+        }
     } last_position;
 
 public:
