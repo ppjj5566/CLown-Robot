@@ -4,8 +4,6 @@
 #include "semphr.h"
 #include "received_joystick_data.h"
 
-extern xSemaphoreHandle gaits_mutex;
-
 class gaits
 {
 private:
@@ -13,7 +11,8 @@ private:
     int gait;
     inverse_kinematics *i_k;
     struct gaits_last_position_data{
-        int x, y, z, roll, pitch, yaw;
+        int x, y, roll, pitch, yaw;
+        int z = -30;
         void set(int x, int y, int z){
             this->x = x;
             this->y = y;
@@ -25,8 +24,9 @@ public:
     gaits(inverse_kinematics *ik): i_k(ik), sequence(true), gait(0), last_position({0, 0, 0}){
         gaits_mutex = xSemaphoreCreateBinary();
     };
-    int lerp(int start, int end, int t);
-    int bazier_curve(int start, int end, int height, int t);
+
+    template<typename T> int lerp(T start, T end, int t, int step = 30);
+    template<typename T> int bazier_curve(T start, T end, T height, int t);
     void move(received_joystick_data *joy_data);
     void stop();
     ~gaits() {};

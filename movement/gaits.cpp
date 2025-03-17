@@ -5,14 +5,16 @@
 
 SemaphoreHandle_t gaits_mutex = NULL;
 
-int gaits::lerp(int start, int end, int t)
+template <typename T>
+int gaits::lerp(T start, T end, int t, int step)
 {
-    float ft = t / 30.0f;
-    float endpoint = start + ((end - start) * ft);
-    return (int)endpoint;
+    int ft = t / step;
+    int endpoint = start + ((end - start) * ft);
+    return endpoint;
 }
 
-int gaits::bazier_curve(int start, int end, int height, int t)
+template <typename T>
+int gaits::bazier_curve(T start, T end, T height, int t)
 {
     int a = lerp(start, height, t);
     int b = lerp(height, end, t);
@@ -68,12 +70,11 @@ void gaits::move(received_joystick_data *joy_data)
     }
 }
 
-void gaits::stop(){
-    i_k->body_kinematics(0, 0, -30, 0, 0, 0, 0);
-    i_k->body_kinematics(0, 0, -30, 0, 0, 0, 1);
-    i_k->body_kinematics(0, 0, -30, 0, 0, 0, 2);
-    i_k->body_kinematics(0, 0, -30, 0, 0, 0, 3);
-    i_k->body_kinematics(0, 0, -30, 0, 0, 0, 4);
-    i_k->body_kinematics(0, 0, -30, 0, 0, 0, 5);
+void gaits::stop()
+{
+    for (uint i = 0; i < 6; i++)
+    {
+        i_k->body_kinematics(0, 0, last_position.z, 0, 0, 0, i);
+    }
     vTaskDelay(pdMS_TO_TICKS(100));
 }

@@ -22,7 +22,7 @@ using namespace plasma;
 
 // char ssid[64], pw[64];
 
-received_joystick_data *joy_data = new received_joystick_data();
+received_joystick_data *joy_data = new received_joystick_data(); 
 WS2812 led_bar(servo2040::NUM_LEDS, pio1, 0, servo2040::LED_DATA);
 gaits *gait;
 
@@ -37,7 +37,6 @@ void neo_pixel_task(void *pvParameters)
         }
         vTaskDelay(pdMS_TO_TICKS(5));
     }
-    vTaskDelete(NULL);
 }
 
 void adc_task(void *pvParameters)
