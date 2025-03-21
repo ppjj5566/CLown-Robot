@@ -29,9 +29,7 @@ private:
     } last_position;
 
 public:
-    gaits(inverse_kinematics *ik): i_k(ik), sequence(true), gait(0), last_position({0, 0, 0}){
-        gaits_mutex = xSemaphoreCreateBinary();
-    };
+    gaits(inverse_kinematics *ik): i_k(ik), sequence(true), gait(0), last_position({0, 0, 0}){};
 
     template<typename T> int lerp(T start, T end, int t, int step = 30);
     template<typename T> int bazier_curve(T start, T end, T height, int t);
