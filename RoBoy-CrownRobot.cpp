@@ -22,20 +22,32 @@ using namespace plasma;
 
 // char ssid[64], pw[64];
 
-received_joystick_data *joy_data = new received_joystick_data(); 
+received_joystick_data *joy_data = new received_joystick_data();
 WS2812 led_bar(servo2040::NUM_LEDS, pio1, 0, servo2040::LED_DATA);
 gaits *gait;
 
 void neo_pixel_task(void *pvParameters)
 {
-    led_bar.start();
+    static uint led_count = 0;
     while (true)
     {
-        for (auto i = 0u; i < servo2040::NUM_LEDS; i++)
+        led_bar.start();
+        if (led_count == servo2040::NUM_LEDS)
         {
-            led_bar.set_rgb(i, 255, 255, 255);
+            led_count = 0;
         }
-        vTaskDelay(pdMS_TO_TICKS(5));
+        for (uint i = 0; i < servo2040::NUM_LEDS; i++)
+        {
+            if (led_count == i)
+            {
+                led_bar.set_rgb(i, 255, 0, 0);
+            }else{
+                led_bar.set_rgb(i, 0, 0, 0);
+            }
+        }
+        led_count++;
+        printf("LED count: %d\n", led_count);
+        vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }
 
@@ -49,6 +61,7 @@ void adc_task(void *pvParameters)
     struct pbuf *p;
     ip_addr_t dest_addr;
     IP4_ADDR(&dest_addr, 192, 168, 0, 29);
+    TickType_t xLastWakeTime;
 
     while (true)
     {
@@ -64,8 +77,8 @@ void adc_task(void *pvParameters)
         float voltage = (float)result1 * conversion_factor * 8.5f;
         float temp = 27 - ((((float)result2 * conversion_factor) - 0.706) / 0.001721);
 
-        // printf("Consumption: %.2fA, Batt: %.2fV, MCU Temperature: %.1f°C\n",
-        // current - 1.65f, voltage * 8.5f, temp);
+        printf("Consumption: %.2fA, Batt: %.2fV, MCU Temperature: %.1f°C\n",
+               current - 1.65f, voltage * 8.5f, temp);
         sprintf(buffer, "Consumption: %.2fA, Batt: %.2fV, MCU Temperature: %.1f°C\n",
                 current - 1.65f, voltage * 8.5f, temp);
 
@@ -82,8 +95,9 @@ void adc_task(void *pvParameters)
             printf("Failed to allocate pbuf\n");
         }
         sys_mutex_unlock(mutex);
+        xLastWakeTime = xTaskGetTickCount();
 
-        vTaskDelay(pdMS_TO_TICKS(500));
+        vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(500));
     }
 }
 
@@ -100,7 +114,7 @@ void init_servos()
         servo_cluster->calibration(i).apply_three_pairs(460.0f, 1430.0f, 2400.0f, 0.0f, 90.0f, 180.0f);
     }
     servo_cluster->enable_all();
-    //servo_cluster->all_to_mid();
+    // servo_cluster->all_to_mid();
 
     inverse_kinematics *i_k = new inverse_kinematics(servo_cluster);
     gait = new gaits(i_k);
@@ -135,18 +149,18 @@ int main()
     }
     printf("cyw43 initialised\n");
 
-    // TaskHandle_t handleA, handleB;
+    TaskHandle_t handleA, handleB;
     sys_mutex_t *udp_mutex;
 
     sys_mutex_new(udp_mutex);
 
-    xTaskCreate(udp_task, "server_task", 1024, joy_data, 0, NULL);
-    xTaskCreate(movement_order_task, "movement_order_task", 2048, NULL, 0, NULL);
+    xTaskCreate(udp_task, "server_task", 1024, joy_data, 4, &handleA);
+    xTaskCreate(movement_order_task, "movement_order_task", 2048, NULL, 3, NULL);
     xTaskCreate(adc_task, "adc_task", 256, udp_mutex, 2, NULL);
-    xTaskCreate(neo_pixel_task, "neo_pixel_task", 256, NULL, 3, NULL);
+    xTaskCreate(neo_pixel_task, "neo_pixel_task", 512, NULL, 1, NULL);
 
-    // vTaskCoreAffinitySet(handleA, (1 << 0));
-    // vTaskCoreAffinitySet(handleB, (1 << 1));
+    vTaskCoreAffinitySet(handleA, (1 << 0));
+    vTaskCoreAffinitySet(handleB, (1 << 1));
 
     vTaskStartScheduler();
 
