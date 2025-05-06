@@ -67,6 +67,7 @@ target_link_libraries(RoBoy-CrownRobot
   pico_stdlib
   udp_server
   gaits
+  SK6805
 )
 
 # Add the standard include files to the build
